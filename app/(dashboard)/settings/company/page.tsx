@@ -323,9 +323,9 @@ export default function CompanySettingsPage() {
 
             <div className="md:col-span-2">
               <div className="space-y-2">
-                <label className="block text-gray-600 text-sm font-medium mb-2">
+              <label className="block text-gray-600 text-sm font-medium mb-2">
                   Identificação Fiscal
-                </label>
+              </label>
                 <div className="flex gap-2">
                   <select
                     value={taxIdType}
@@ -353,7 +353,7 @@ export default function CompanySettingsPage() {
                       ))
                     })()}
                   </select>
-                  <input
+              <input
                     type="text"
                     {...register('tax_id')}
                     placeholder={taxIdType === 'CNPJ' ? '00.000.000/0000-00' : taxIdType === 'EIN' ? '12-3456789' : 'Tax ID'}
@@ -363,7 +363,7 @@ export default function CompanySettingsPage() {
                 </div>
                 {errors.tax_id && (
                   <p className="text-red-400 text-xs mt-1">{errors.tax_id.message}</p>
-                )}
+              )}
               </div>
             </div>
 

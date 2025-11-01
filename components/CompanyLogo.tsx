@@ -35,6 +35,7 @@ export function CompanyLogo({ size = 'md', className = '', showFallback = true }
           src={logoUrl}
           alt={companyName}
           fill
+          sizes={`${currentSize.icon}px`}
           className="object-contain"
           priority
         />
@@ -71,6 +72,7 @@ export function CompanyLogoWithName({ className = '' }: { className?: string }) 
             src={logoUrl}
             alt={companyName}
             fill
+            sizes="48px"
             className="object-contain rounded-lg"
             priority
           />

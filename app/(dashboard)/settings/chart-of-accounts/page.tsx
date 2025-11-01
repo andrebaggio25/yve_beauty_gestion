@@ -170,49 +170,49 @@ export default function ChartOfAccountsPage() {
 
     const row = (
       <tr key={account.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
-        <td className="px-6 py-3 text-sm">
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 24}px` }}>
-            {hasChildren && (
-              <button
-                onClick={() => toggleExpand(account.id)}
-                className="text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              </button>
-            )}
-            <span className={`font-mono font-bold ${getTypeColor(account.type)}`}>
-              {account.code}
+          <td className="px-6 py-3 text-sm">
+            <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 24}px` }}>
+              {hasChildren && (
+                <button
+                  onClick={() => toggleExpand(account.id)}
+                  className="text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+              )}
+              <span className={`font-mono font-bold ${getTypeColor(account.type)}`}>
+                {account.code}
+              </span>
+            </div>
+          </td>
+          <td className="px-6 py-3 text-sm text-gray-900">{account.name}</td>
+          <td className="px-6 py-3 text-sm">
+            <span className={`font-medium ${getTypeColor(account.type)}`}>
+              {getTypeLabel(account.type)}
             </span>
-          </div>
-        </td>
-        <td className="px-6 py-3 text-sm text-gray-900">{account.name}</td>
-        <td className="px-6 py-3 text-sm">
-          <span className={`font-medium ${getTypeColor(account.type)}`}>
-            {getTypeLabel(account.type)}
-          </span>
-        </td>
-        <td className="px-6 py-3 text-sm text-center">
-          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+          </td>
+          <td className="px-6 py-3 text-sm text-center">
+            <span className={`px-2 py-1 rounded text-xs font-semibold ${
             account.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-          }`}>
-            {account.is_active ? 'Ativa' : 'Inativa'}
-          </span>
-        </td>
-        <td className="px-6 py-3 text-sm text-right space-x-2">
-          <button
-            onClick={() => handleEdit(account)}
-            className="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
-          >
-            <Edit2 size={16} />
-          </button>
-          <button
-            onClick={() => handleDelete(account.id)}
-            className="text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
-          >
-            <Trash2 size={16} />
-          </button>
-        </td>
-      </tr>
+            }`}>
+              {account.is_active ? 'Ativa' : 'Inativa'}
+            </span>
+          </td>
+          <td className="px-6 py-3 text-sm text-right space-x-2">
+            <button
+              onClick={() => handleEdit(account)}
+              className="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+            >
+              <Edit2 size={16} />
+            </button>
+            <button
+              onClick={() => handleDelete(account.id)}
+              className="text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
+            >
+              <Trash2 size={16} />
+            </button>
+          </td>
+        </tr>
     )
 
     const childRows = isExpanded ? children.flatMap(child => renderAccountRow(child, depth + 1)) : []

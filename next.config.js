@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // Habilitar output standalone para Docker
+  output: 'standalone',
   images: {
     remotePatterns: [
       {

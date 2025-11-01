@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yve-gestion-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_EXCHANGE_RATE_API_KEY=${NEXT_PUBLIC_EXCHANGE_RATE_API_KEY}
+      - NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME:-Yve Gestión}
+      - NEXT_PUBLIC_DEFAULT_LOCALE=${NEXT_PUBLIC_DEFAULT_LOCALE:-pt-BR}
+    volumes:
+      # Opcional: montar .env.local se necessário
+      # - ./.env.local:/app/.env.local:ro
+      - ./public:/app/public:ro
+    networks:
+      - yve-network
+
+networks:
+  yve-network:
+    driver: bridge
+

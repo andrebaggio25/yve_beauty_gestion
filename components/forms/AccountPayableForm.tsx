@@ -15,6 +15,7 @@ const accountPayableSchema = z.object({
   due_date: z.string().min(1, 'Data de vencimento é obrigatória'),
   description: z.string().min(5, 'Descrição deve ter no mínimo 5 caracteres'),
   document_pdf_url: z.string().url('URL do documento é obrigatória').optional().or(z.literal('')),
+  payment_method_id: z.string().uuid('Selecione um método de pagamento').optional().nullable(),
   recurrence: z.enum(['none', 'monthly', 'quarterly']).default('none'),
   recurrence_end_date: z.string().optional(),
   installments: z.string().optional(),
@@ -25,10 +26,16 @@ type AccountPayableFormData = z.infer<typeof accountPayableSchema>
 interface Vendor {
   id: string
   legal_name: string
+  trade_name?: string | null
 }
 
 interface Currency {
   code: string
+  symbol: string
+}
+
+interface PaymentMethod {
+  id: string
   name: string
 }
 
@@ -41,6 +48,7 @@ interface AccountPayableFormProps {
 export default function AccountPayableForm({ onSuccess, onCancel, initialData }: AccountPayableFormProps) {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [currencies, setCurrencies] = useState<Currency[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loading, setLoading] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const supabase = createClient()
@@ -64,13 +72,14 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
   useEffect(() => {
     fetchVendors()
     fetchCurrencies()
+    fetchPaymentMethods()
   }, [])
 
   const fetchVendors = async () => {
     try {
       const { data, error } = await supabase
         .from('vendor')
-        .select('id, legal_name')
+        .select('id, legal_name, trade_name')
         .order('legal_name')
 
       if (error) throw error
@@ -84,13 +93,41 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
     try {
       const { data, error } = await supabase
         .from('currency')
-        .select('code, name')
+        .select('code, symbol')
         .order('code')
 
       if (error) throw error
       setCurrencies(data || [])
     } catch (error) {
       console.error('Error fetching currencies:', error)
+    }
+  }
+
+  const fetchPaymentMethods = async () => {
+    try {
+      // Get branch_id from user profile to filter payment methods
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('user_profile')
+        .select('branch_id')
+        .eq('auth_user_id', user.id)
+        .single()
+
+      if (!profile?.branch_id) return
+
+      const { data, error } = await supabase
+        .from('payment_method')
+        .select('id, name')
+        .eq('branch_id', profile.branch_id)
+        .eq('is_active', true)
+        .order('name')
+
+      if (error) throw error
+      setPaymentMethods(data || [])
+    } catch (error) {
+      console.error('Error fetching payment methods:', error)
     }
   }
 
@@ -157,6 +194,7 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
         due_date: data.due_date,
         description: data.description,
         document_pdf_url: data.document_pdf_url || '',
+        payment_method_id: data.payment_method_id || null,
         recurrence: data.recurrence,
         recurrence_end_date: data.recurrence_end_date || null,
         installments: data.installments ? JSON.parse(data.installments) : null,
@@ -197,12 +235,12 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
           </label>
           <select
             {...register('vendor_id')}
-            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Selecione um fornecedor</option>
             {vendors.map((vendor) => (
               <option key={vendor.id} value={vendor.id}>
-                {vendor.legal_name}
+                {vendor.trade_name || vendor.legal_name}
               </option>
             ))}
           </select>
@@ -219,7 +257,7 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
           <textarea
             {...register('description')}
             rows={3}
-            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Descreva a conta a pagar..."
           />
           {errors.description && (
@@ -236,7 +274,7 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
             type="number"
             step="0.01"
             {...register('amount')}
-            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0.00"
           />
           {errors.amount && (
@@ -256,12 +294,33 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
             <option value="">Selecione a moeda</option>
             {currencies.map((currency) => (
               <option key={currency.code} value={currency.code}>
-                {currency.code} - {currency.name}
+                {currency.code} - {currency.symbol}
               </option>
             ))}
           </select>
           {errors.currency_code && (
             <p className="text-red-600 text-sm mt-1">{errors.currency_code.message}</p>
+          )}
+        </div>
+
+        {/* Payment Method */}
+        <div>
+          <label className="block text-gray-700 text-sm font-medium mb-2">
+            Método de Pagamento
+          </label>
+          <select
+            {...register('payment_method_id')}
+            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Selecione um método</option>
+            {paymentMethods.map((method) => (
+              <option key={method.id} value={method.id}>
+                {method.name}
+              </option>
+            ))}
+          </select>
+          {errors.payment_method_id && (
+            <p className="text-red-400 text-sm mt-1">{errors.payment_method_id.message}</p>
           )}
         </div>
 
@@ -283,7 +342,7 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
           <input
             type="date"
             {...register('due_date')}
-            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {errors.due_date && (
             <p className="text-red-400 text-sm mt-1">{errors.due_date.message}</p>
@@ -297,7 +356,7 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
           </label>
           <select
             {...register('recurrence')}
-            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="none">Única</option>
             <option value="monthly">Mensal</option>
@@ -314,7 +373,7 @@ export default function AccountPayableForm({ onSuccess, onCancel, initialData }:
             <input
               type="date"
               {...register('recurrence_end_date')}
-              className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 bg-white border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         )}
