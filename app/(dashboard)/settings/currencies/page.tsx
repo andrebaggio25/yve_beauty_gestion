@@ -199,7 +199,7 @@ export default function CurrenciesPage() {
                     <td className="px-6 py-4 text-sm text-gray-500 font-mono text-lg">{currency.symbol}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        currency.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
+                        currency.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {currency.is_active ? 'Ativa' : 'Inativa'}
                       </span>

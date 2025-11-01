@@ -99,7 +99,7 @@ export default function AccountsPayablePage() {
     const styles: Record<string, string> = {
       'OPEN': 'bg-yellow-900 text-yellow-200',
       'PARTIAL': 'bg-blue-900 text-blue-200',
-      'PAID': 'bg-green-900 text-green-200',
+      'PAID': 'bg-green-100 text-green-700',
       'OVERDUE': 'bg-red-900 text-red-200',
     }
     return styles[status] || 'bg-slate-700 text-gray-600'
@@ -225,7 +225,7 @@ export default function AccountsPayablePage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-700 border-b border-slate-600">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Fornecedor</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Descrição</th>
@@ -235,9 +235,9 @@ export default function AccountsPayablePage() {
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-gray-200">
                 {filteredRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-100 transition-colors">
+                  <tr key={record.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">{record.vendor_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{record.description}</td>
                     <td className="px-6 py-4 text-sm text-gray-900 text-right font-mono">

@@ -75,10 +75,10 @@ export default function EmployeesPage() {
 
   const getContractTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      'FIXED': 'Fixo',
-      'TEMPORARY': 'Temporário',
-      'INTERN': 'Estagiário',
-      'CONTRACTOR': 'Terceiro',
+      'fixed': 'Fixo',
+      'temporary': 'Temporário',
+      'intern': 'Estagiário',
+      'contractor': 'Terceiro',
     }
     return labels[type] || type
   }

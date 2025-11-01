@@ -249,7 +249,7 @@ export default function ContractsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-700 border-b border-slate-600">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Cliente</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Descrição</th>
@@ -260,9 +260,9 @@ export default function ContractsPage() {
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-gray-200">
                 {filteredContracts.map((contract) => (
-                  <tr key={contract.id} className="hover:bg-gray-100 transition-colors">
+                  <tr key={contract.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">{contract.customer_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{contract.description}</td>
                     <td className="px-6 py-4 text-sm text-gray-900 text-right font-mono">
@@ -272,7 +272,7 @@ export default function ContractsPage() {
                     <td className="px-6 py-4 text-sm text-gray-500">{formatDate(contract.start_date)}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        contract.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
+                        contract.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-700 text-gray-600'
                       }`}>
                         {contract.is_active ? 'Ativo' : 'Inativo'}
                       </span>

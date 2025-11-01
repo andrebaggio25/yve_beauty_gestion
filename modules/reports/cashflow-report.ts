@@ -54,24 +54,24 @@ export async function generateCashFlowReport(params: CashFlowParams): Promise<Ca
     // Get receipts for this month (from accounts_receivable)
     const { data: receipts } = await supabase
       .from('accounts_receivable')
-      .select('amount, amount_usd')
-      .in('status', ['PAID', 'PENDING'])
+      .select('amount, usd_equiv_amount')
+      .in('status', ['paid', 'open'])
       .gte('due_date', monthStart.toISOString().split('T')[0])
       .lte('due_date', monthEnd.toISOString().split('T')[0])
     
     // Get payments for this month (from accounts_payable)
     const { data: payments } = await supabase
       .from('accounts_payable')
-      .select('amount, amount_usd')
-      .in('status', ['PAID', 'PENDING'])
+      .select('amount, usd_equiv_amount')
+      .in('status', ['paid', 'open'])
       .gte('due_date', monthStart.toISOString().split('T')[0])
       .lte('due_date', monthEnd.toISOString().split('T')[0])
     
     const receiptsTotal = receipts?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0
     const paymentsTotal = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0
     
-    const receiptsTotalUSD = receipts?.reduce((sum, r) => sum + (r.amount_usd || 0), 0) || 0
-    const paymentsTotalUSD = payments?.reduce((sum, p) => sum + (p.amount_usd || 0), 0) || 0
+    const receiptsTotalUSD = receipts?.reduce((sum, r) => sum + (r.usd_equiv_amount || 0), 0) || 0
+    const paymentsTotalUSD = payments?.reduce((sum, p) => sum + (p.usd_equiv_amount || 0), 0) || 0
     
     const netFlow = receiptsTotal - paymentsTotal
     const netFlowUSD = receiptsTotalUSD - paymentsTotalUSD

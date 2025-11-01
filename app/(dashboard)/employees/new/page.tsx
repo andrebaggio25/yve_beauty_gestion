@@ -15,10 +15,10 @@ export default function NewEmployeePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Novo Funcionário</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Novo Funcionário</h1>
       </div>
 
-      <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
         <EmployeeForm onSubmit={handleSubmit} />
       </div>
     </div>

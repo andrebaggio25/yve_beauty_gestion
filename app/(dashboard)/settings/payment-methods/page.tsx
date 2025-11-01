@@ -195,7 +195,7 @@ export default function PaymentMethodsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-700 border-b border-slate-600">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Nome</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Tipo</th>
@@ -204,25 +204,25 @@ export default function PaymentMethodsPage() {
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-gray-200">
                 {methods.map((method) => (
-                  <tr key={method.id} className="hover:bg-gray-100 transition-colors">
+                  <tr key={method.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">{method.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{getTypeLabel(method.type)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{getTypeLabel(method.type)}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        method.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
+                        method.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {method.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {method.requires_approval ? (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-900 text-yellow-200">
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-700">
                           Requerida
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded text-xs font-semibold bg-slate-700 text-gray-500">
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600">
                           Não
                         </span>
                       )}

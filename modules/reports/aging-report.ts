@@ -19,15 +19,15 @@ export async function generateAgingReport(filters: ReportFilters): Promise<Aging
   // Get AP records
   const { data: apRecords } = await supabase
     .from('accounts_payable')
-    .select('id, due_date, original_amount, original_currency, usd_equiv_amount, status')
-    .eq('status', 'ABERTA')
+    .select('id, due_date, amount, currency_code, usd_equiv_amount, status')
+    .in('status', ['open', 'partial', 'overdue'])
     .lte('due_date', filters.endDate)
 
   // Get AR records
   const { data: arRecords } = await supabase
     .from('accounts_receivable')
-    .select('id, due_date, original_amount, original_currency, usd_equiv_amount, status')
-    .eq('status', 'ABERTA')
+    .select('id, due_date, amount, currency_code, usd_equiv_amount, status')
+    .in('status', ['open', 'partial', 'overdue'])
     .lte('due_date', filters.endDate)
 
   // Process AP
@@ -111,16 +111,16 @@ export async function generateDetailedAgingReport(
   if (type === 'AP') {
     // Get AP with vendor details
     const { data: apDetails } = await supabase
-      .from('accounts_payable as ap')
+      .from('accounts_payable')
       .select(`
         id,
         due_date,
-        original_amount,
-        original_currency,
+        amount,
+        currency_code,
         usd_equiv_amount,
-        employee:employee_id(first_name, last_name)
+        vendor:vendor_id(legal_name)
       `)
-      .eq('status', 'ABERTA')
+      .in('status', ['open', 'partial', 'overdue'])
       .lte('due_date', filters.endDate)
 
     const byVendor: Record<string, any> = {}
@@ -165,16 +165,16 @@ export async function generateDetailedAgingReport(
   } else {
     // Get AR with customer details
     const { data: arDetails } = await supabase
-      .from('accounts_receivable as ar')
+      .from('accounts_receivable')
       .select(`
         id,
         due_date,
-        original_amount,
-        original_currency,
+        amount,
+        currency_code,
         usd_equiv_amount,
         customer:customer_id(legal_name, trade_name)
       `)
-      .eq('status', 'ABERTA')
+      .in('status', ['open', 'partial', 'overdue'])
       .lte('due_date', filters.endDate)
 
     const byCustomer: Record<string, any> = {}

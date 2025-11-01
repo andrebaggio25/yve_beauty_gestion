@@ -93,22 +93,18 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<Invoice>
     customer_id: input.customer_id,
     contract_id: input.contract_id ?? null,
     branch_id: input.branch_id ?? null,
-    status: 'RASCUNHO' as const,
-    invoice_number: invoiceNumber,
+    status: 'draft' as const,
+    number: invoiceNumber,
     issue_date: input.issue_date,
     due_date: input.due_date,
-    original_currency: input.original_currency,
+    currency_code: input.original_currency,
     subtotal: input.subtotal,
-    tax_amount: taxAmount,
-    total_amount: input.total_amount,
-    usd_equiv_amount: usdAmount,
+    tax_total: taxAmount,
+    total: input.total_amount,
+    usd_equiv_total: usdAmount,
     fx_rate_used: fxRate,
     fx_rate_source: 'exchangerate.host',
     fx_rate_timestamp: new Date().toISOString(),
-    notes: input.notes ?? null,
-    template_id: input.template_id ?? null,
-    pdf_path: null,
-    language: input.language ?? 'pt-BR',
   }
 
   const { data: invoice, error: invoiceError } = await supabase
@@ -155,18 +151,18 @@ export async function updateInvoice(input: UpdateInvoiceInput): Promise<Invoice>
 
   if (error) throw error
 
-  // If status changed to EMITIDA, create AR automatically
-  if (status === 'EMITIDA') {
+  // If status changed to issued, create AR automatically
+  if (status === 'issued') {
     const invoice = data as Invoice
     await createAR({
       customer_id: invoice.customer_id,
       invoice_id: invoice.id,
-      description: `Invoice ${invoice.invoice_number}`,
-      original_amount: invoice.total_amount,
-      original_currency: invoice.original_currency,
+      description: `Invoice ${invoice.number}`,
+      original_amount: invoice.total,
+      original_currency: invoice.currency_code,
       due_date: invoice.due_date,
       issue_date: invoice.issue_date,
-      invoice_number: invoice.invoice_number,
+      invoice_number: invoice.number,
     })
   }
 
@@ -176,14 +172,14 @@ export async function updateInvoice(input: UpdateInvoiceInput): Promise<Invoice>
 export async function emitInvoice(invoiceId: string): Promise<Invoice> {
   return updateInvoice({
     id: invoiceId,
-    status: 'EMITIDA',
+    status: 'issued',
   })
 }
 
 export async function cancelInvoice(invoiceId: string): Promise<void> {
   const { error } = await supabase
     .from('invoice')
-    .update({ status: 'CANCELADA' })
+    .update({ status: 'canceled' })
     .eq('id', invoiceId)
 
   if (error) throw error

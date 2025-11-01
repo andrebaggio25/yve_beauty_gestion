@@ -1,7 +1,7 @@
 import { BaseEntity } from './common'
 
-export type APStatus = 'ABERTA' | 'PARCIAL' | 'PAGA' | 'CANCELADA' | 'VENCIDA'
-export type ARStatus = 'ABERTA' | 'PARCIAL' | 'PAGA' | 'CANCELADA' | 'VENCIDA'
+export type APStatus = 'open' | 'partial' | 'paid' | 'canceled' | 'overdue'
+export type ARStatus = 'open' | 'partial' | 'paid' | 'canceled' | 'overdue'
 export type RecurrenceType = 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL'
 
 // Bank Accounts

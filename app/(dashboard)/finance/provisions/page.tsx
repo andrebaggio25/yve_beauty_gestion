@@ -9,15 +9,17 @@ import Pagination from '@/components/Pagination'
 
 interface Provision {
   id: string
-  employee_id: string
-  employee_name: string
+  branch_id: string
+  reference_type: string
   description: string
   amount: number
-  currency: string
-  provision_date: string
+  currency_code: string
+  usd_equiv_amount: number
+  fx_rate_used: number
+  month_ref: string
   status: string
-  reversed_at: string | null
   created_at: string
+  updated_at: string
 }
 
 export default function ProvisionsPage() {
@@ -53,25 +55,13 @@ export default function ProvisionsPage() {
 
       const { data, error } = await supabase
         .from('provision')
-        .select(`
-          *,
-          employee:employee_id (
-            first_name,
-            last_name
-          )
-        `)
-        .order('provision_date', { ascending: false })
+        .select('*')
+        .order('month_ref', { ascending: false })
         .range(from, to)
 
       if (error) throw error
       
-      // Transform data to include employee_name
-      const transformedData = (data || []).map(p => ({
-        ...p,
-        employee_name: p.employee ? `${p.employee.first_name} ${p.employee.last_name}` : 'N/A'
-      }))
-      
-      setProvisions(transformedData)
+      setProvisions(data || [])
     } catch (error) {
       console.error('Error fetching provisions:', error)
     } finally {
@@ -86,8 +76,7 @@ export default function ProvisionsPage() {
       const { error } = await supabase
         .from('provision')
         .update({ 
-          status: 'REVERSED',
-          reversed_at: new Date().toISOString()
+          status: 'reversed'
         })
         .eq('id', id)
 
@@ -97,7 +86,7 @@ export default function ProvisionsPage() {
         entity: 'provision',
         entity_id: id,
         action: 'update',
-        changes: { status: 'REVERSED' }
+        changes: { status: 'reversed' }
       })
 
       fetchProvisions()
@@ -130,24 +119,24 @@ export default function ProvisionsPage() {
   }
 
   const filteredProvisions = provisions.filter(p => {
-    const matchesSearch = p.employee_name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = (p.description || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.reference_type || '').toLowerCase().includes(search.toLowerCase())
     const matchesStatus = filterStatus === 'all' || p.status === filterStatus
     return matchesSearch && matchesStatus
   })
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      'ACTIVE': 'bg-green-900 text-green-200',
-      'REVERSED': 'bg-red-900 text-red-200',
+      'booked': 'bg-green-900 text-green-200',
+      'reversed': 'bg-red-900 text-red-200',
     }
     return styles[status] || 'bg-slate-700 text-gray-600'
   }
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      'ACTIVE': 'Ativa',
-      'REVERSED': 'Estornada',
+      'booked': 'Ativa',
+      'reversed': 'Estornada',
     }
     return labels[status] || status
   }
@@ -164,11 +153,11 @@ export default function ProvisionsPage() {
   }
 
   const totalActive = filteredProvisions
-    .filter(p => p.status === 'ACTIVE')
+    .filter(p => p.status === 'booked')
     .reduce((sum, p) => sum + p.amount, 0)
 
   const totalReversed = filteredProvisions
-    .filter(p => p.status === 'REVERSED')
+    .filter(p => p.status === 'reversed')
     .reduce((sum, p) => sum + p.amount, 0)
 
   return (
@@ -199,7 +188,7 @@ export default function ProvisionsPage() {
           <Search className="absolute left-3 top-3 text-gray-500" size={20} />
           <input
             type="text"
-            placeholder="Buscar por funcionário ou descrição..."
+            placeholder="Buscar por tipo ou descrição..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -212,8 +201,8 @@ export default function ProvisionsPage() {
             className="w-full px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todos os Status</option>
-            <option value="ACTIVE">Ativas</option>
-            <option value="REVERSED">Estornadas</option>
+            <option value="booked">Ativas</option>
+            <option value="reversed">Estornadas</option>
           </select>
         </div>
       </div>
@@ -261,10 +250,10 @@ export default function ProvisionsPage() {
             <table className="w-full">
               <thead className="bg-slate-700 border-b border-slate-600">
                 <tr>
-                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Funcionário</th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Tipo</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Descrição</th>
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Valor</th>
-                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Data</th>
+                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Mês Ref.</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Status</th>
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
@@ -272,19 +261,19 @@ export default function ProvisionsPage() {
               <tbody className="divide-y divide-slate-700">
                 {filteredProvisions.map((provision) => (
                   <tr key={provision.id} className="hover:bg-gray-100 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">{provision.employee_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{provision.description}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 font-medium">{provision.reference_type}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{provision.description || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-900 text-right font-mono">
-                      {formatCurrency(provision.amount, provision.currency)}
+                      {formatCurrency(provision.amount, provision.currency_code)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(provision.provision_date)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(provision.month_ref)}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(provision.status)}`}>
                         {getStatusLabel(provision.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-right space-x-2">
-                      {provision.status === 'ACTIVE' && (
+                      {provision.status === 'booked' && (
                         <button
                           onClick={() => handleReverse(provision.id)}
                           className="text-yellow-400 hover:text-yellow-300 transition-colors inline-flex items-center gap-1"

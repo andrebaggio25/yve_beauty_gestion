@@ -1,21 +1,18 @@
 import { BaseEntity } from './common'
 
-export type ContractType = 'FIXED' | 'TEMPORARY' | 'INTERN' | 'CONTRACTOR'
+export type ContractType = 'fixed' | 'temporary' | 'intern' | 'contractor'
 
 export interface Employee extends BaseEntity {
-  company_id: string
-  auth_user_id: string | null
+  branch_id: string
+  user_profile_id: string | null
   first_name: string
   last_name: string
   email: string
   phone: string | null
+  phone_country: string
   country_code: string
-  state_code: string | null
-  city: string | null
-  address: string | null
-  postal_code: string | null
   tax_id: string | null
-  tax_id_type: 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'
+  tax_id_type: string | null
   contract_type: ContractType
   contract_value: number | null
   contract_currency: string | null
@@ -23,7 +20,9 @@ export interface Employee extends BaseEntity {
   start_date: string
   end_date: string | null
   is_active: boolean
-  can_view_all_data: boolean
+  address: any
+  documents: any
+  notes: string | null
 }
 
 export interface EmployeeAttachment extends BaseEntity {
@@ -51,20 +50,16 @@ export interface CreateEmployeeInput {
   last_name: string
   email: string
   phone?: string
+  phone_country?: string
   country_code: string
-  state_code?: string
-  city?: string
-  address?: string
-  postal_code?: string
   tax_id?: string
-  tax_id_type?: 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'
+  tax_id_type?: string
   contract_type: ContractType
   contract_value?: number
   contract_currency?: string
   payment_day?: number
   start_date: string
   end_date?: string
-  can_view_all_data?: boolean
 }
 
 export interface UpdateEmployeeInput extends Partial<CreateEmployeeInput> {

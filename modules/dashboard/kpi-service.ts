@@ -35,46 +35,44 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
   // Get all AR (open receivables)
   const { data: arData } = await supabase
     .from('accounts_receivable')
-    .select('amount, amount_usd')
-    .in('status', ['PENDING', 'OVERDUE', 'PARTIALLY_PAID'])
+    .select('amount, usd_equiv_amount')
+    .in('status', ['open', 'overdue', 'partial'])
 
   // Get all AP (open payables)
   const { data: apData } = await supabase
     .from('accounts_payable')
-    .select('amount, amount_usd')
-    .in('status', ['PENDING', 'OVERDUE', 'PARTIALLY_PAID'])
+    .select('amount, usd_equiv_amount')
+    .in('status', ['open', 'overdue', 'partial'])
 
   // Get invoices this month
   const { count: invoicesCount } = await supabase
     .from('invoice')
     .select('*', { count: 'exact', head: true })
-    .in('status', ['DRAFT', 'ISSUED', 'SENT', 'PAID'])
+    .in('status', ['draft', 'issued', 'sent', 'paid'])
     .gte('issue_date', monthStart.toISOString().split('T')[0])
     .lte('issue_date', monthEnd.toISOString().split('T')[0])
 
-  // Get revenue this month (paid invoices)
+  // Get revenue this month (paid AR)
   const { data: revenueData } = await supabase
     .from('accounts_receivable')
-    .select('amount, amount_usd')
-    .eq('status', 'PAID')
-    .gte('payment_date', monthStart.toISOString().split('T')[0])
-    .lte('payment_date', monthEnd.toISOString().split('T')[0])
+    .select('amount, usd_equiv_amount')
+    .eq('status', 'paid')
 
   // Get overdue accounts (both AP and AR)
   const { data: overdueAR } = await supabase
     .from('accounts_receivable')
     .select('id')
-    .eq('status', 'OVERDUE')
+    .eq('status', 'overdue')
 
   const { data: overdueAP } = await supabase
     .from('accounts_payable')
     .select('id')
-    .eq('status', 'OVERDUE')
+    .eq('status', 'overdue')
 
   // Calculate totals
-  const totalReceivable = arData?.reduce((sum, ar) => sum + (ar.amount_usd || ar.amount || 0), 0) || 0
-  const totalPayable = apData?.reduce((sum, ap) => sum + (ap.amount_usd || ap.amount || 0), 0) || 0
-  const revenueThisMonth = revenueData?.reduce((sum, r) => sum + (r.amount_usd || r.amount || 0), 0) || 0
+  const totalReceivable = arData?.reduce((sum, ar) => sum + (ar.usd_equiv_amount || ar.amount || 0), 0) || 0
+  const totalPayable = apData?.reduce((sum, ap) => sum + (ap.usd_equiv_amount || ap.amount || 0), 0) || 0
+  const revenueThisMonth = revenueData?.reduce((sum, r) => sum + (r.usd_equiv_amount || r.amount || 0), 0) || 0
   const overdueAccounts = (overdueAR?.length || 0) + (overdueAP?.length || 0)
 
   // Cash flow estimate (receivables - payables)
@@ -102,12 +100,10 @@ export async function getRevenueChartData(): Promise<RevenueChartData[]> {
 
     const { data: revenueData } = await supabase
       .from('accounts_receivable')
-      .select('amount, amount_usd')
-      .eq('status', 'PAID')
-      .gte('payment_date', monthStart.toISOString().split('T')[0])
-      .lte('payment_date', monthEnd.toISOString().split('T')[0])
+      .select('amount, usd_equiv_amount')
+      .eq('status', 'paid')
 
-    const revenue = revenueData?.reduce((sum, r) => sum + (r.amount_usd || r.amount || 0), 0) || 0
+    const revenue = revenueData?.reduce((sum, r) => sum + (r.usd_equiv_amount || r.amount || 0), 0) || 0
 
     data.push({
       month: format(monthStart, 'MMM yyyy', { locale: require('date-fns/locale/pt-BR') }),
@@ -123,26 +119,26 @@ export async function getCurrencyDistribution(): Promise<CurrencyDistribution[]>
   // Get all open AR and AP by currency
   const { data: arByCurrency } = await supabase
     .from('accounts_receivable')
-    .select('currency, amount')
-    .in('status', ['PENDING', 'OVERDUE', 'PARTIALLY_PAID'])
+    .select('currency_code, amount')
+    .in('status', ['open', 'overdue', 'partial'])
 
   const { data: apByCurrency } = await supabase
     .from('accounts_payable')
-    .select('currency, amount')
-    .in('status', ['PENDING', 'OVERDUE', 'PARTIALLY_PAID'])
+    .select('currency_code, amount')
+    .in('status', ['open', 'overdue', 'partial'])
 
   const currencyTotals = new Map<string, number>()
 
   // Aggregate AR
   arByCurrency?.forEach(ar => {
-    const current = currencyTotals.get(ar.currency) || 0
-    currencyTotals.set(ar.currency, current + ar.amount)
+    const current = currencyTotals.get(ar.currency_code) || 0
+    currencyTotals.set(ar.currency_code, current + ar.amount)
   })
 
   // Aggregate AP
   apByCurrency?.forEach(ap => {
-    const current = currencyTotals.get(ap.currency) || 0
-    currencyTotals.set(ap.currency, current + ap.amount) // Add both for distribution
+    const current = currencyTotals.get(ap.currency_code) || 0
+    currencyTotals.set(ap.currency_code, current + ap.amount) // Add both for distribution
   })
 
   const total = Array.from(currencyTotals.values()).reduce((sum, amount) => sum + Math.abs(amount), 0)
@@ -167,23 +163,23 @@ export async function getRecentActivity(): Promise<Array<{
   // Get recent payments (AP)
   const { data: recentAP } = await supabase
     .from('accounts_payable')
-    .select('id, description, amount, payment_date, status')
-    .eq('status', 'PAID')
-    .order('payment_date', { ascending: false })
+    .select('id, amount, status, created_at')
+    .eq('status', 'paid')
+    .order('created_at', { ascending: false })
     .limit(5)
 
   // Get recent receipts (AR)
   const { data: recentAR } = await supabase
     .from('accounts_receivable')
-    .select('id, description, amount, payment_date, status')
-    .eq('status', 'PAID')
-    .order('payment_date', { ascending: false })
+    .select('id, amount, status, created_at')
+    .eq('status', 'paid')
+    .order('created_at', { ascending: false })
     .limit(5)
 
   // Get recent contracts
   const { data: recentContracts } = await supabase
     .from('contract')
-    .select('id, description, amount, created_at')
+    .select('id, notes, created_at')
     .order('created_at', { ascending: false })
     .limit(3)
 
@@ -191,23 +187,23 @@ export async function getRecentActivity(): Promise<Array<{
     ...(recentAP?.map(ap => ({
       id: `ap-${ap.id}`,
       type: 'payment',
-      description: `Pagamento: ${ap.description}`,
-      date: ap.payment_date,
+      description: `Pagamento realizado`,
+      date: ap.created_at,
       amount: ap.amount,
     })) || []),
     ...(recentAR?.map(ar => ({
       id: `ar-${ar.id}`,
       type: 'receipt',
-      description: `Recebimento: ${ar.description}`,
-      date: ar.payment_date,
+      description: `Recebimento realizado`,
+      date: ar.created_at,
       amount: ar.amount,
     })) || []),
     ...(recentContracts?.map(c => ({
       id: `contract-${c.id}`,
       type: 'contract',
-      description: `Novo contrato: ${c.description}`,
+      description: `Novo contrato: ${c.notes || 'Sem descrição'}`,
       date: c.created_at,
-      amount: c.amount,
+      amount: 0,
     })) || []),
   ]
 

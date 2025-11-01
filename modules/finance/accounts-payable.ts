@@ -39,26 +39,18 @@ export async function createAP(input: CreateAPInput): Promise<AccountsPayable> {
   const { usdAmount, fxRate } = await convertToUSD(input.original_amount, input.original_currency)
 
   const payload = {
-    description: input.description,
-    status: 'ABERTA' as const,
-    original_amount: input.original_amount,
-    original_currency: input.original_currency,
+    branch_id: input.branch_id ?? null,
+    vendor_id: input.vendor_id,
+    document_pdf_url: input.document_pdf_url,
+    currency_code: input.original_currency,
+    amount: input.original_amount,
     usd_equiv_amount: usdAmount,
     fx_rate_used: fxRate,
-    fx_rate_source: 'exchangerate.host',
-    fx_rate_timestamp: new Date().toISOString(),
     due_date: input.due_date,
-    document_date: input.document_date,
-    document_number: input.document_number ?? null,
-    document_file_path: input.document_file_path ?? null,
-    payment_method: input.payment_method ?? null,
-    bank_account_id: input.bank_account_id ?? null,
-    notes: input.notes ?? null,
-    is_recurring: input.is_recurring ?? false,
-    recurrence_type: input.recurrence_type ?? null,
+    installments: input.installments ?? null,
+    recurrence: input.recurrence ?? 'none',
     recurrence_end_date: input.recurrence_end_date ?? null,
-    parent_ap_id: null,
-    employee_id: input.employee_id ?? null,
+    status: 'open' as const,
   }
 
   const { data, error } = await supabase
@@ -133,12 +125,12 @@ export async function recordAPPayment(apId: string, amount: number, currency: st
   const ap = await getAPById(apId)
   if (ap) {
     const total = totalPaid?.reduce((sum, p) => sum + p.usd_equiv_amount, 0) || 0
-    let newStatus: APStatus = 'ABERTA'
+    let newStatus: APStatus = 'open'
 
     if (total >= ap.usd_equiv_amount) {
-      newStatus = 'PAGA'
+      newStatus = 'paid'
     } else if (total > 0) {
-      newStatus = 'PARCIAL'
+      newStatus = 'partial'
     }
 
     if (newStatus !== ap.status) {
@@ -162,7 +154,7 @@ export async function listAPPayments(apId: string): Promise<APPayment[]> {
 export async function cancelAP(id: string): Promise<void> {
   const { error } = await supabase
     .from('accounts_payable')
-    .update({ status: 'CANCELADA' })
+    .update({ status: 'canceled' })
     .eq('id', id)
 
   if (error) throw error

@@ -234,7 +234,7 @@ export default function RolesPage() {
                     role.permissions.map((perm, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-1 bg-slate-700 text-gray-600 text-xs rounded"
+                        className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded"
                       >
                         {perm.split('.')[1]}
                       </span>
@@ -245,9 +245,9 @@ export default function RolesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                  role.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
+                  role.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {role.is_active ? 'Ativo' : 'Inativo'}
                 </span>

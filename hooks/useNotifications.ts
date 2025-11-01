@@ -31,35 +31,34 @@ export function useNotifications() {
       const { data: overdueAR } = await supabase
         .from('accounts_receivable')
         .select('id, due_date')
-        .eq('status', 'ABERTA')
+        .eq('status', 'overdue')
         .lt('due_date', today.toISOString().split('T')[0])
 
       const { data: overdueAP } = await supabase
         .from('accounts_payable')
         .select('id, due_date')
-        .eq('status', 'ABERTA')
+        .eq('status', 'overdue')
         .lt('due_date', today.toISOString().split('T')[0])
 
       // Check for accounts due tomorrow
       const { data: dueTomorrowAR } = await supabase
         .from('accounts_receivable')
         .select('id, due_date')
-        .eq('status', 'ABERTA')
+        .eq('status', 'open')
         .eq('due_date', tomorrow.toISOString().split('T')[0])
 
       const { data: dueTomorrowAP } = await supabase
         .from('accounts_payable')
         .select('id, due_date')
-        .eq('status', 'ABERTA')
+        .eq('status', 'open')
         .eq('due_date', tomorrow.toISOString().split('T')[0])
 
       // Check for unsent invoices
       const { data: unsentInvoices } = await supabase
         .from('invoice')
-        .select('id, invoice_number, due_date')
-        .eq('status', 'EMITIDA')
+        .select('id, number, due_date')
+        .eq('status', 'issued')
         .lt('due_date', today.toISOString().split('T')[0])
-        .is('pdf_path', null)
 
       const newNotifications: Notification[] = []
 

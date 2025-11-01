@@ -32,11 +32,17 @@ export default function ChartOfAccountsPage() {
   const [filterType, setFilterType] = useState<string>('all')
   const supabase = createClient()
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    code: string
+    name: string
+    type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+    parent_id: string | null
+    is_active: boolean
+  }>({
     code: '',
     name: '',
-    type: 'asset' as const,
-    parent_id: null as string | null,
+    type: 'asset',
+    parent_id: null,
     is_active: true,
   })
 
@@ -157,60 +163,61 @@ export default function ChartOfAccountsPage() {
       .filter(a => filterType === 'all' || a.type === filterType)
   }
 
-  const renderAccountRow = (account: ChartAccount, depth: number = 0) => {
+  const renderAccountRow = (account: ChartAccount, depth: number = 0): JSX.Element[] => {
     const children = buildHierarchy(account.id)
     const hasChildren = children.length > 0
     const isExpanded = expandedAccounts.has(account.id)
 
-    return (
-      <React.Fragment key={account.id}>
-        <tr className="hover:bg-gray-100 transition-colors border-b border-gray-200 hover:bg-gray-50 transition-colors">
-          <td className="px-6 py-3 text-sm">
-            <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 24}px` }}>
-              {hasChildren && (
-                <button
-                  onClick={() => toggleExpand(account.id)}
-                  className="text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </button>
-              )}
-              <span className={`font-mono font-bold ${getTypeColor(account.type)}`}>
-                {account.code}
-              </span>
-            </div>
-          </td>
-          <td className="px-6 py-3 text-sm text-gray-900">{account.name}</td>
-          <td className="px-6 py-3 text-sm">
-            <span className={`font-medium ${getTypeColor(account.type)}`}>
-              {getTypeLabel(account.type)}
+    const row = (
+      <tr key={account.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
+        <td className="px-6 py-3 text-sm">
+          <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 24}px` }}>
+            {hasChildren && (
+              <button
+                onClick={() => toggleExpand(account.id)}
+                className="text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </button>
+            )}
+            <span className={`font-mono font-bold ${getTypeColor(account.type)}`}>
+              {account.code}
             </span>
-          </td>
-          <td className="px-6 py-3 text-sm text-center">
-            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-              account.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
-            }`}>
-              {account.is_active ? 'Ativa' : 'Inativa'}
-            </span>
-          </td>
-          <td className="px-6 py-3 text-sm text-right space-x-2">
-            <button
-              onClick={() => handleEdit(account)}
-              className="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
-            >
-              <Edit2 size={16} />
-            </button>
-            <button
-              onClick={() => handleDelete(account.id)}
-              className="text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
-            >
-              <Trash2 size={16} />
-            </button>
-          </td>
-        </tr>
-        {isExpanded && children.map(child => renderAccountRow(child, depth + 1))}
-      </React.Fragment>
+          </div>
+        </td>
+        <td className="px-6 py-3 text-sm text-gray-900">{account.name}</td>
+        <td className="px-6 py-3 text-sm">
+          <span className={`font-medium ${getTypeColor(account.type)}`}>
+            {getTypeLabel(account.type)}
+          </span>
+        </td>
+        <td className="px-6 py-3 text-sm text-center">
+          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+            account.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {account.is_active ? 'Ativa' : 'Inativa'}
+          </span>
+        </td>
+        <td className="px-6 py-3 text-sm text-right space-x-2">
+          <button
+            onClick={() => handleEdit(account)}
+            className="text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            onClick={() => handleDelete(account.id)}
+            className="text-red-400 hover:text-red-300 transition-colors inline-flex items-center gap-1"
+          >
+            <Trash2 size={16} />
+          </button>
+        </td>
+      </tr>
     )
+
+    const childRows = isExpanded ? children.flatMap(child => renderAccountRow(child, depth + 1)) : []
+    
+    return [row, ...childRows]
   }
 
   const rootAccounts = buildHierarchy(null)
@@ -252,8 +259,10 @@ export default function ChartOfAccountsPage() {
       <div className="flex gap-2">
         <button
           onClick={() => setFilterType('all')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filterType === 'all' ? 'bg-black text-gray-900' : 'bg-white text-gray-600 hover:bg-gray-100'
+          className={`px-4 py-2 rounded-lg transition-colors border ${
+            filterType === 'all' 
+              ? 'bg-black text-white border-black' 
+              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
           }`}
         >
           Todas
@@ -262,8 +271,10 @@ export default function ChartOfAccountsPage() {
           <button
             key={type.value}
             onClick={() => setFilterType(type.value)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filterType === type.value ? 'bg-black text-gray-900' : 'bg-white text-gray-600 hover:bg-gray-100'
+            className={`px-4 py-2 rounded-lg transition-colors border ${
+              filterType === type.value 
+                ? 'bg-black text-white border-black' 
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
             }`}
           >
             {type.label}
@@ -291,7 +302,7 @@ export default function ChartOfAccountsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-700 border-b border-slate-600">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Código</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Nome</th>
@@ -301,7 +312,7 @@ export default function ChartOfAccountsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rootAccounts.map(account => renderAccountRow(account, 0))}
+                {rootAccounts.flatMap(account => renderAccountRow(account, 0))}
               </tbody>
             </table>
           </div>

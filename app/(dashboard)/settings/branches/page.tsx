@@ -238,7 +238,7 @@ export default function BranchesPage() {
                   <p className="text-gray-500 text-sm font-mono">{branch.code}</p>
                 </div>
                 {branch.is_headquarters && (
-                  <span className="px-2 py-1 bg-blue-900 text-blue-200 text-xs font-semibold rounded">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
                     Matriz
                   </span>
                 )}
@@ -262,9 +262,9 @@ export default function BranchesPage() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-gray-200 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                  branch.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
+                  branch.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {branch.is_active ? 'Ativa' : 'Inativa'}
                 </span>

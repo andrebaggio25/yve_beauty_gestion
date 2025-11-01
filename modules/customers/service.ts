@@ -22,8 +22,19 @@ export async function getCustomerById(id: string): Promise<Customer | null> {
   return data
 }
 
-export async function createCustomer(input: CreateCustomerInput): Promise<Customer> {
+export async function createCustomer(input: CreateCustomerInput & { emails?: string[] }): Promise<Customer> {
+  // Busca o primeiro branch disponível
+  const { data: branches } = await supabase
+    .from('branch')
+    .select('id')
+    .limit(1)
+  
+  if (!branches || branches.length === 0) {
+    throw new Error('No branch found. Please create a branch first.')
+  }
+
   const payload = {
+    branch_id: branches[0].id,
     legal_name: input.legal_name,
     trade_name: input.trade_name ?? null,
     country_code: input.country_code,
@@ -34,7 +45,9 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
     tax_id: input.tax_id ?? null,
     tax_id_type: input.tax_id_type ?? 'OTHER',
     phone: input.phone ?? null,
-    email: input.email ?? null,
+    phone_country: input.phone_country ?? 'BR',
+    email: input.email ?? (input.emails && input.emails.length > 0 ? input.emails[0] : null),
+    emails: input.emails && input.emails.length > 0 ? input.emails : [],
     website: input.website ?? null,
     preferred_language: input.preferred_language,
     is_active: true,

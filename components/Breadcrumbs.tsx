@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { ChevronRight, Home } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -37,10 +38,10 @@ export function Breadcrumbs({ items, className = '' }: BreadcrumbsProps) {
   if (items.length === 0) return null
 
   return (
-    <nav className={`flex items-center space-x-2 text-sm text-slate-400 ${className}`}>
+    <nav className={`flex items-center space-x-2 text-sm text-gray-600 ${className}`}>
       <Link
         href="/dashboard"
-        className="flex items-center gap-1 hover:text-white transition-colors"
+        className="flex items-center gap-1 hover:text-blue-600 transition-colors"
       >
         <Home size={14} />
         <span className="sr-only">Dashboard</span>
@@ -48,16 +49,16 @@ export function Breadcrumbs({ items, className = '' }: BreadcrumbsProps) {
 
       {items.map((item, index) => (
         <React.Fragment key={index}>
-          <ChevronRight size={14} className="text-slate-600" />
+          <ChevronRight size={14} className="text-gray-400" />
           {item.href && index < items.length - 1 ? (
             <Link
               href={item.href}
-              className="hover:text-white transition-colors"
+              className="hover:text-blue-600 transition-colors"
             >
               {item.label}
             </Link>
           ) : (
-            <span className="text-slate-300 font-medium">{item.label}</span>
+            <span className="text-gray-900 font-medium">{item.label}</span>
           )}
         </React.Fragment>
       ))}

@@ -1,21 +1,26 @@
 import { BaseEntity } from './common'
 
 export interface Customer extends BaseEntity {
-  company_id: string
+  branch_id: string
   legal_name: string
   trade_name: string | null
-  country_code: string
+  country_code: string | null
   state_code: string | null
   city: string | null
   address: string | null
   postal_code: string | null
   tax_id: string | null
-  tax_id_type: 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'
+  tax_id_type: string
   phone: string | null
+  phone_country: string
   email: string | null
+  emails: string[] // Array de e-mails
   website: string | null
+  default_language: string | null
   preferred_language: 'pt-BR' | 'es-ES' | 'en-US'
   is_active: boolean
+  addresses: any // JSONB
+  contacts: any // JSONB
 }
 
 export interface CustomerContact extends BaseEntity {
@@ -23,6 +28,7 @@ export interface CustomerContact extends BaseEntity {
   contact_name: string
   contact_email: string | null
   contact_phone: string | null
+  contact_phone_country: string
   is_primary: boolean
 }
 
@@ -46,6 +52,7 @@ export interface CreateCustomerInput {
   tax_id?: string
   tax_id_type?: 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'
   phone?: string
+  phone_country?: string
   email?: string
   website?: string
   preferred_language: 'pt-BR' | 'es-ES' | 'en-US'

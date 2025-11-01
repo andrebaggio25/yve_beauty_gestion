@@ -71,15 +71,15 @@ export async function generateBalanceSheet(params: BalanceSheetParams): Promise<
   // Fetch accounts receivable (pending and overdue)
   const { data: receivables } = await supabase
     .from('accounts_receivable')
-    .select('amount, amount_usd, status')
-    .in('status', ['PENDING', 'OVERDUE', 'PARTIALLY_PAID'])
+    .select('amount, usd_equiv_amount, status')
+    .in('status', ['open', 'overdue', 'partial'])
     .lte('due_date', endDate)
 
   // Fetch accounts payable (pending and overdue)
   const { data: payables } = await supabase
     .from('accounts_payable')
-    .select('amount, amount_usd, status')
-    .in('status', ['PENDING', 'OVERDUE', 'PARTIALLY_PAID'])
+    .select('amount, usd_equiv_amount, status')
+    .in('status', ['open', 'overdue', 'partial'])
     .lte('due_date', endDate)
 
   // Calculate Assets
@@ -87,7 +87,7 @@ export async function generateBalanceSheet(params: BalanceSheetParams): Promise<
   const cashAndBankUSD = 10000
   
   const accountsReceivableTotal = (receivables || []).reduce((sum, r) => sum + r.amount, 0)
-  const accountsReceivableTotalUSD = (receivables || []).reduce((sum, r) => sum + (r.amount_usd || 0), 0)
+  const accountsReceivableTotalUSD = (receivables || []).reduce((sum, r) => sum + (r.usd_equiv_amount || 0), 0)
 
   const currentAssets = [
     { account: 'Caixa e Bancos', amount: cashAndBank, amountUSD: cashAndBankUSD },
@@ -111,7 +111,7 @@ export async function generateBalanceSheet(params: BalanceSheetParams): Promise<
 
   // Calculate Liabilities
   const accountsPayableTotal = (payables || []).reduce((sum, p) => sum + p.amount, 0)
-  const accountsPayableTotalUSD = (payables || []).reduce((sum, p) => sum + (p.amount_usd || 0), 0)
+  const accountsPayableTotalUSD = (payables || []).reduce((sum, p) => sum + (p.usd_equiv_amount || 0), 0)
 
   const currentLiabilities = [
     { account: 'Contas a Pagar', amount: accountsPayableTotal, amountUSD: accountsPayableTotalUSD },

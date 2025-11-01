@@ -98,7 +98,7 @@ export default function InvoicesPage() {
       'DRAFT': 'bg-slate-700 text-gray-600',
       'ISSUED': 'bg-blue-900 text-blue-200',
       'SENT': 'bg-yellow-900 text-yellow-200',
-      'PAID': 'bg-green-900 text-green-200',
+      'PAID': 'bg-green-100 text-green-700',
       'OVERDUE': 'bg-red-900 text-red-200',
       'CANCELLED': 'bg-red-950 text-red-300',
     }
@@ -234,7 +234,7 @@ export default function InvoicesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-700 border-b border-slate-600">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Número</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Cliente</th>
@@ -246,9 +246,9 @@ export default function InvoicesPage() {
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-gray-200">
                 {filteredInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="hover:bg-gray-100 transition-colors">
+                  <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-blue-400 font-mono font-medium">{invoice.invoice_number}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{invoice.customer_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{invoice.description}</td>

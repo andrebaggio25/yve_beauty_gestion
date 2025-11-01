@@ -45,18 +45,13 @@ export async function createAR(input: CreateARInput): Promise<AccountsReceivable
   const payload = {
     customer_id: input.customer_id,
     invoice_id: input.invoice_id ?? null,
-    description: input.description,
-    status: 'ABERTA' as const,
-    original_amount: input.original_amount,
-    original_currency: input.original_currency,
+    branch_id: input.branch_id ?? null,
+    currency_code: input.original_currency,
+    amount: input.original_amount,
     usd_equiv_amount: usdAmount,
     fx_rate_used: fxRate,
-    fx_rate_source: 'exchangerate.host',
-    fx_rate_timestamp: new Date().toISOString(),
     due_date: input.due_date,
-    issue_date: input.issue_date,
-    invoice_number: input.invoice_number ?? null,
-    notes: input.notes ?? null,
+    status: 'open' as const,
   }
 
   const { data, error } = await supabase
@@ -131,12 +126,12 @@ export async function recordARReceipt(arId: string, amount: number, currency: st
   const ar = await getARById(arId)
   if (ar) {
     const total = totalReceived?.reduce((sum, r) => sum + r.usd_equiv_amount, 0) || 0
-    let newStatus: ARStatus = 'ABERTA'
+    let newStatus: ARStatus = 'open'
 
     if (total >= ar.usd_equiv_amount) {
-      newStatus = 'PAGA'
+      newStatus = 'paid'
     } else if (total > 0) {
-      newStatus = 'PARCIAL'
+      newStatus = 'partial'
     }
 
     if (newStatus !== ar.status) {
@@ -160,7 +155,7 @@ export async function listARReceipts(arId: string): Promise<ARReceipt[]> {
 export async function cancelAR(id: string): Promise<void> {
   const { error } = await supabase
     .from('accounts_receivable')
-    .update({ status: 'CANCELADA' })
+    .update({ status: 'canceled' })
     .eq('id', id)
 
   if (error) throw error

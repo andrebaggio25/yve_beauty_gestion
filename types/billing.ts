@@ -4,7 +4,7 @@ export type BillingModel = 'ÚNICO' | 'RECORRENTE'
 export type RecognitionMethod = 'COMPETÊNCIA' | 'VIGÊNCIA'
 export type ContractStatus = 'ATIVO' | 'SUSPENSO' | 'ENCERRADO'
 export type RecurrenceFrequency = 'MENSAL' | 'BIMESTRAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL'
-export type InvoiceStatus = 'RASCUNHO' | 'EMITIDA' | 'ENVIADA' | 'PARCIAL' | 'PAGA' | 'CANCELADA' | 'VENCIDA'
+export type InvoiceStatus = 'draft' | 'issued' | 'sent' | 'partial' | 'paid' | 'canceled' | 'overdue'
 
 // Contracts
 export interface Contract extends BaseEntity {

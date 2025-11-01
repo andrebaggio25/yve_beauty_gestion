@@ -93,9 +93,9 @@ export default function UsersPage() {
 
   const getRoleBadge = (role: string) => {
     const styles: Record<string, string> = {
-      admin: 'bg-purple-900 text-purple-200',
-      manager: 'bg-blue-900 text-blue-200',
-      user: 'bg-slate-700 text-gray-600',
+      admin: 'bg-purple-100 text-purple-700',
+      manager: 'bg-blue-100 text-blue-700',
+      user: 'bg-gray-100 text-gray-600',
     }
     return styles[role] || styles.user
   }
@@ -176,7 +176,7 @@ export default function UsersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-700 border-b border-slate-600">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Usuário</th>
                   <th className="text-left px-6 py-3 text-sm font-semibold text-gray-600">Email</th>
@@ -186,12 +186,12 @@ export default function UsersPage() {
                   <th className="text-right px-6 py-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700">
+              <tbody className="divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-100 transition-colors">
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                           <span className="text-gray-900 font-semibold">
                             {user.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                           </span>
@@ -218,7 +218,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        user.is_active ? 'bg-green-900 text-green-200' : 'bg-slate-700 text-gray-600'
+                        user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                       }`}>
                         {user.is_active ? 'Ativo' : 'Inativo'}
                       </span>

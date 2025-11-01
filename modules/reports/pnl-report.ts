@@ -44,34 +44,28 @@ export async function generatePnLReport(params: PnLReportParams): Promise<PnLDat
     .from('chart_of_accounts')
     .select('id, code, name')
     .eq('type', 'revenue')
-    .eq('is_active', true)
 
   // Fetch all expense accounts from chart of accounts
   const { data: expenseAccounts } = await supabase
     .from('chart_of_accounts')
     .select('id, code, name')
     .eq('type', 'expense')
-    .eq('is_active', true)
 
   // Calculate revenues from accounts_receivable (paid)
   const { data: receivables } = await supabase
     .from('accounts_receivable')
-    .select('amount, currency, amount_usd')
-    .eq('status', 'PAID')
-    .gte('payment_date', startDate)
-    .lte('payment_date', endDate)
+    .select('amount, currency_code, usd_equiv_amount')
+    .eq('status', 'paid')
 
   // Calculate expenses from accounts_payable (paid)
   const { data: payables } = await supabase
     .from('accounts_payable')
-    .select('amount, currency, amount_usd')
-    .eq('status', 'PAID')
-    .gte('payment_date', startDate)
-    .lte('payment_date', endDate)
+    .select('amount, currency_code, usd_equiv_amount')
+    .eq('status', 'paid')
 
   // Process revenues
   const revenueTotal = (receivables || []).reduce((sum, r) => sum + r.amount, 0)
-  const revenueTotalUSD = (receivables || []).reduce((sum, r) => sum + (r.amount_usd || 0), 0)
+  const revenueTotalUSD = (receivables || []).reduce((sum, r) => sum + (r.usd_equiv_amount || 0), 0)
 
   // Group revenues by account (simulated - in real scenario would come from journal entries)
   const revenueItems = [
@@ -89,7 +83,7 @@ export async function generatePnLReport(params: PnLReportParams): Promise<PnLDat
 
   // Process expenses
   const expenseTotal = (payables || []).reduce((sum, p) => sum + p.amount, 0)
-  const expenseTotalUSD = (payables || []).reduce((sum, p) => sum + (p.amount_usd || 0), 0)
+  const expenseTotalUSD = (payables || []).reduce((sum, p) => sum + (p.usd_equiv_amount || 0), 0)
 
   // Group expenses by category (simulated)
   const expenseItems = [
