@@ -21,9 +21,18 @@ COPY . .
 
 # Desabilitar telemetria do Next.js durante build
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
 
-# Build da aplicação
-RUN npm run build
+# Variáveis de ambiente para build (se necessário)
+# Next.js pode precisar de variáveis públicas no build time
+# Se suas variáveis não são necessárias no build, pode remover
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# Build da aplicação com tratamento de erro melhor
+RUN npm run build || (echo "Build failed, showing error details:" && cat .next/trace && exit 1)
 
 # Stage 3: Runner (produção)
 FROM node:20-alpine AS runner
