@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import { Building2 } from 'lucide-react'
+import { useCompanyLogo } from '@/hooks/useCompanyLogo'
 
 interface CompanyLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -12,37 +11,7 @@ interface CompanyLogoProps {
 }
 
 export function CompanyLogo({ size = 'md', className = '', showFallback = true }: CompanyLogoProps) {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  const [companyName, setCompanyName] = useState<string>('Yve Gestión')
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  useEffect(() => {
-    fetchCompanyLogo()
-  }, [])
-
-  const fetchCompanyLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('company')
-        .select('logo_url, legal_name, trade_name, name')
-        .single()
-
-      if (error) {
-        console.error('Error fetching company logo:', error)
-        return
-      }
-
-      if (data) {
-        setLogoUrl(data.logo_url)
-        setCompanyName(data.trade_name || data.legal_name || data.name || 'Yve Gestión')
-      }
-    } catch (error) {
-      console.error('Error fetching company logo:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { logoUrl, companyName, loading } = useCompanyLogo()
 
   const sizeClasses = {
     sm: { container: 'h-8 w-8', icon: 24, text: 'text-sm' },
@@ -87,33 +56,30 @@ export function CompanyLogo({ size = 'md', className = '', showFallback = true }
 
 /**
  * Company logo for use in navigation/header
+ * Usa a logo da empresa se disponível, caso contrário mostra fallback
  */
 export function CompanyLogoWithName({ className = '' }: { className?: string }) {
-  const [companyName, setCompanyName] = useState<string>('Yve Gestión')
-  const supabase = createClient()
-
-  useEffect(() => {
-    fetchCompanyName()
-  }, [])
-
-  const fetchCompanyName = async () => {
-    try {
-      const { data } = await supabase
-        .from('company')
-        .select('trade_name, legal_name, name')
-        .single()
-
-      if (data) {
-        setCompanyName(data.trade_name || data.legal_name || data.name || 'Yve Gestión')
-      }
-    } catch (error) {
-      console.error('Error fetching company name:', error)
-    }
-  }
+  const { logoUrl, companyName, loading } = useCompanyLogo()
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <CompanyLogo size="md" />
+      {loading ? (
+        <div className="h-12 w-12 bg-gray-200 animate-pulse rounded-lg" />
+      ) : logoUrl ? (
+        <div className="relative h-12 w-12">
+          <Image
+            src={logoUrl}
+            alt={companyName}
+            fill
+            className="object-contain rounded-lg"
+            priority
+          />
+        </div>
+      ) : (
+        <div className="h-12 w-12 bg-black text-white rounded-lg flex items-center justify-center">
+          <Building2 size={24} />
+        </div>
+      )}
       <div className="flex flex-col">
         <span className="font-bold text-gray-900">{companyName}</span>
         <span className="text-xs text-gray-500">Gestão Financeira</span>

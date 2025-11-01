@@ -36,7 +36,7 @@ export default function MonthlyClosePage() {
       // Fetch invoices for the month
       const { data: invoices, error: invError } = await supabase
         .from('invoice')
-        .select('amount, status')
+        .select('total, status')
         .gte('issue_date', `${year}-${month.toString().padStart(2, '0')}-01`)
         .lt('issue_date', `${year}-${(month + 1).toString().padStart(2, '0')}-01`)
 
@@ -44,24 +44,24 @@ export default function MonthlyClosePage() {
 
       // Fetch accounts receivable
       const { data: ar, error: arError } = await supabase
-        .from('account_receivable')
+        .from('accounts_receivable')
         .select('amount, status')
-        .eq('status', 'OPEN')
+        .eq('status', 'open')
 
       if (arError) throw arError
 
       // Fetch accounts payable
       const { data: ap, error: apError } = await supabase
-        .from('account_payable')
+        .from('accounts_payable')
         .select('amount, status')
-        .eq('status', 'OPEN')
+        .eq('status', 'open')
 
       if (apError) throw apError
 
       const totalInvoices = invoices?.length || 0
-      const totalRevenue = invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0
-      const totalAR = ar?.reduce((sum, a) => sum + a.amount, 0) || 0
-      const totalAP = ap?.reduce((sum, a) => sum + a.amount, 0) || 0
+      const totalRevenue = invoices?.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0) || 0
+      const totalAR = ar?.reduce((sum, a) => sum + (Number(a.amount) || 0), 0) || 0
+      const totalAP = ap?.reduce((sum, a) => sum + (Number(a.amount) || 0), 0) || 0
 
       setSummary({
         month: new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'long' }),

@@ -6,20 +6,25 @@ import { Building2, Save, Upload, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry'
+import { TaxIdInput } from '@/components/TaxIdInput'
+import { COUNTRIES } from '@/lib/utils/countries'
 
 const companySchema = z.object({
   legal_name: z.string().min(3, 'Razão social deve ter no mínimo 3 caracteres'),
   trade_name: z.string().min(3, 'Nome fantasia deve ter no mínimo 3 caracteres'),
-  tax_id: z.string().min(11, 'CNPJ/Tax ID inválido'),
+  tax_id: z.string().optional().nullable(),
+  tax_id_type: z.enum(['EIN', 'VAT', 'NIF', 'CNPJ', 'OTHER']).optional(),
+  country_code: z.string().min(2, 'País deve ser selecionado'),
   email: z.string().email('Email inválido'),
-  phone: z.string().min(10, 'Telefone inválido'),
+  phone: z.string().optional().nullable(),
+  phone_country: z.string().optional(),
   website: z.string().url('Website inválido').optional().or(z.literal('')),
   address_line1: z.string().min(5, 'Endereço deve ter no mínimo 5 caracteres'),
   address_line2: z.string().optional(),
   city: z.string().min(2, 'Cidade deve ter no mínimo 2 caracteres'),
   state: z.string().min(2, 'Estado deve ter no mínimo 2 caracteres'),
   postal_code: z.string().min(5, 'CEP inválido'),
-  country: z.string().min(2, 'País deve ter no mínimo 2 caracteres'),
 })
 
 type CompanyFormData = z.infer<typeof companySchema>
@@ -29,15 +34,35 @@ export default function CompanySettingsPage() {
   const [saving, setSaving] = useState(false)
   const [companyId, setCompanyId] = useState<string | null>(null)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [phoneCountry, setPhoneCountry] = useState<string>('BR')
+  const [taxIdType, setTaxIdType] = useState<'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'>('CNPJ')
   const supabase = createClient()
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<CompanyFormData>({
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
   })
 
   useEffect(() => {
     fetchCompanyData()
   }, [])
+
+  // Atualizar tax_id_type quando country_code muda
+  const countryCode = watch('country_code')
+  useEffect(() => {
+    if (countryCode) {
+      const types: Record<string, 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'> = {
+        'US': 'EIN',
+        'BR': 'CNPJ',
+        'ES': 'VAT',
+        'IE': 'VAT',
+      }
+      const defaultType = types[countryCode] || 'OTHER'
+      if (taxIdType !== defaultType) {
+        setTaxIdType(defaultType)
+        setValue('tax_id_type', defaultType)
+      }
+    }
+  }, [countryCode, taxIdType, setValue])
 
   const fetchCompanyData = async () => {
     try {
@@ -52,19 +77,24 @@ export default function CompanySettingsPage() {
       if (data) {
         setCompanyId(data.id)
         setLogoUrl(data.logo_url)
+        const countryCode = data.country_code || 'BR'
+        setPhoneCountry(data.phone_country || countryCode)
+        setTaxIdType((data.tax_id_type as any) || 'CNPJ')
         reset({
-          legal_name: data.legal_name || '',
+          legal_name: data.legal_name || data.name || '',
           trade_name: data.trade_name || '',
-          tax_id: data.tax_id || '',
+          tax_id: data.ein || data.tax_id || '',
+          tax_id_type: (data.tax_id_type as any) || 'CNPJ',
+          country_code: countryCode,
           email: data.email || '',
           phone: data.phone || '',
+          phone_country: data.phone_country || countryCode,
           website: data.website || '',
           address_line1: data.address_line1 || '',
           address_line2: data.address_line2 || '',
           city: data.city || '',
           state: data.state || '',
           postal_code: data.postal_code || '',
-          country: data.country || 'Brasil',
         })
       }
     } catch (error) {
@@ -78,11 +108,30 @@ export default function CompanySettingsPage() {
     try {
       setSaving(true)
 
+      const updateData = {
+        name: data.legal_name, // Campo legado
+        legal_name: data.legal_name, // Campo novo
+        trade_name: data.trade_name,
+        ein: data.tax_id, // Campo legado
+        tax_id: data.tax_id,
+        tax_id_type: data.tax_id_type || taxIdType,
+        country_code: data.country_code,
+        email: data.email,
+        phone: data.phone,
+        phone_country: data.phone_country || phoneCountry,
+        website: data.website,
+        address_line1: data.address_line1,
+        address_line2: data.address_line2,
+        city: data.city,
+        state: data.state,
+        postal_code: data.postal_code,
+      }
+
       if (companyId) {
         // Update existing
         const { error } = await supabase
           .from('company')
-          .update(data)
+          .update(updateData)
           .eq('id', companyId)
 
         if (error) throw error
@@ -90,7 +139,7 @@ export default function CompanySettingsPage() {
         // Create new
         const { data: newCompany, error } = await supabase
           .from('company')
-          .insert([data])
+          .insert([updateData])
           .select()
           .single()
 
@@ -114,18 +163,22 @@ export default function CompanySettingsPage() {
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `${companyId}-logo.${fileExt}`
-      const filePath = `company-logos/${fileName}`
+      // Não incluir o nome do bucket no path, apenas o nome do arquivo
+      // O .from('company-logos') já especifica o bucket
+      const filePath = fileName
 
       // Upload to Supabase Storage
+      // NOTA: O bucket deve ser criado no Supabase Storage com nome 'company-logos'
+      // Permissões: Public read, Authenticated write
       const { error: uploadError } = await supabase.storage
-        .from('public')
+        .from('company-logos')
         .upload(filePath, file, { upsert: true })
 
       if (uploadError) throw uploadError
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('public')
+        .from('company-logos')
         .getPublicUrl(filePath)
 
       // Update company with logo URL
@@ -236,15 +289,20 @@ export default function CompanySettingsPage() {
 
             <div>
               <label className="block text-gray-600 text-sm font-medium mb-2">
-                CNPJ / Tax ID *
+                País *
               </label>
-              <input
-                {...register('tax_id')}
+              <select
+                {...register('country_code')}
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="00.000.000/0000-00"
-              />
-              {errors.tax_id && (
-                <p className="text-red-400 text-xs mt-1">{errors.tax_id.message}</p>
+              >
+                {COUNTRIES.map(country => (
+                  <option key={country.code} value={country.code}>
+                    {country.flag} {country.name}
+                  </option>
+                ))}
+              </select>
+              {errors.country_code && (
+                <p className="text-red-400 text-xs mt-1">{errors.country_code.message}</p>
               )}
             </div>
 
@@ -263,18 +321,67 @@ export default function CompanySettingsPage() {
               )}
             </div>
 
-            <div>
-              <label className="block text-gray-600 text-sm font-medium mb-2">
-                Telefone *
-              </label>
-              <input
-                {...register('phone')}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="(11) 98765-4321"
+            <div className="md:col-span-2">
+              <div className="space-y-2">
+                <label className="block text-gray-600 text-sm font-medium mb-2">
+                  Identificação Fiscal
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={taxIdType}
+                    onChange={(e) => {
+                      const type = e.target.value as 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'
+                      setTaxIdType(type)
+                      setValue('tax_id_type', type)
+                    }}
+                    disabled={saving}
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {(() => {
+                      const countryCode = watch('country_code') || 'BR'
+                      const types: Record<string, Array<'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'>> = {
+                        'US': ['EIN', 'OTHER'],
+                        'BR': ['CNPJ', 'OTHER'],
+                        'ES': ['VAT', 'NIF', 'OTHER'],
+                        'IE': ['VAT', 'NIF', 'OTHER'],
+                      }
+                      const availableTypes = types[countryCode] || ['OTHER']
+                      return availableTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))
+                    })()}
+                  </select>
+                  <input
+                    type="text"
+                    {...register('tax_id')}
+                    placeholder={taxIdType === 'CNPJ' ? '00.000.000/0000-00' : taxIdType === 'EIN' ? '12-3456789' : 'Tax ID'}
+                    disabled={saving}
+                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {errors.tax_id && (
+                  <p className="text-red-400 text-xs mt-1">{errors.tax_id.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <PhoneInputWithCountry
+                value={watch('phone') || null}
+                onChange={(val) => {
+                  setValue('phone', val || '')
+                }}
+                phoneCountryCode={phoneCountry}
+                onPhoneCountryChange={(country) => {
+                  setPhoneCountry(country)
+                  setValue('phone_country', country)
+                }}
+                label="Telefone"
+                disabled={saving}
+                required={false}
               />
-              {errors.phone && (
-                <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>
-              )}
             </div>
 
             <div>
@@ -366,19 +473,6 @@ export default function CompanySettingsPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-gray-600 text-sm font-medium mb-2">
-                País *
-              </label>
-              <input
-                {...register('country')}
-                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Brasil"
-              />
-              {errors.country && (
-                <p className="text-red-400 text-xs mt-1">{errors.country.message}</p>
-              )}
-            </div>
           </div>
         </div>
 
