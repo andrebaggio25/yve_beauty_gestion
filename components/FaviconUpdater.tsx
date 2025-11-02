@@ -12,16 +12,16 @@ export function FaviconUpdater() {
   const createdElementsRef = useRef<HTMLLinkElement[]>([])
 
   useEffect(() => {
-    if (typeof document === 'undefined' || !document.head) return
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !document.head) return
 
     // Limpar elementos criados anteriormente de forma segura
     createdElementsRef.current.forEach(element => {
       try {
-        if (element && element.isConnected) {
+        if (element && element.isConnected && element.parentNode) {
           element.remove()
         }
       } catch (error) {
-        // Ignorar erros ao remover (elemento já foi removido)
+        // Ignorar erros ao remover (elemento já foi removido ou não existe mais)
       }
     })
     createdElementsRef.current = []
@@ -29,7 +29,20 @@ export function FaviconUpdater() {
     if (!logoUrl) return
 
     try {
-      // Criar novos favicons primeiro
+      // Primeiro, remover favicons antigos (não dinâmicos) de forma segura
+      const allFavicons = document.querySelectorAll("link[rel*='icon'], link[rel*='apple-touch-icon']")
+      allFavicons.forEach(favicon => {
+        try {
+          const isDynamic = favicon.getAttribute('data-dynamic') === 'true'
+          if (!isDynamic && favicon.isConnected && favicon.parentNode) {
+            favicon.remove()
+          }
+        } catch (error) {
+          // Ignorar erros ao remover elementos antigos
+        }
+      })
+
+      // Criar novos favicons
       const link = document.createElement('link')
       link.setAttribute('data-dynamic', 'true')
       link.rel = 'icon'
@@ -57,23 +70,6 @@ export function FaviconUpdater() {
       appleLink.sizes = '180x180'
       document.head.appendChild(appleLink)
       createdElementsRef.current.push(appleLink)
-
-      // Depois remover apenas favicons antigos (não dinâmicos)
-      // Usar setTimeout para garantir que os novos foram adicionados primeiro
-      setTimeout(() => {
-        const allFavicons = document.querySelectorAll("link[rel*='icon'], link[rel*='apple-touch-icon']")
-        allFavicons.forEach(favicon => {
-          try {
-            // Não remover os elementos dinâmicos que acabamos de criar
-            const isDynamic = favicon.getAttribute('data-dynamic') === 'true'
-            if (!isDynamic && favicon && favicon.isConnected) {
-              favicon.remove()
-            }
-          } catch (error) {
-            // Ignorar erros
-          }
-        })
-      }, 0)
     } catch (error) {
       console.warn('Error updating favicon:', error)
     }
@@ -82,11 +78,11 @@ export function FaviconUpdater() {
     return () => {
       createdElementsRef.current.forEach(element => {
         try {
-          if (element && element.isConnected) {
+          if (element && element.isConnected && element.parentNode) {
             element.remove()
           }
         } catch (error) {
-          // Ignorar erros ao remover
+          // Ignorar erros ao remover (elemento já foi removido)
         }
       })
       createdElementsRef.current = []
