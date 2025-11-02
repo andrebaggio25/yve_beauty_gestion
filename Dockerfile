@@ -20,8 +20,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Desabilitar telemetria do Next.js durante build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
 # Variáveis de ambiente para build (Next.js precisa das NEXT_PUBLIC_* no build time)
 # Estas serão passadas como build args e depois como env vars
@@ -44,17 +44,25 @@ RUN npm run build || (echo "Build failed. Check logs above." && exit 1)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Criar usuário não-root para segurança
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copiar arquivos necessários do build
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Criar diretório public vazio (Next.js standalone não precisa se vazio)
+# Se houver arquivos em public no futuro, descomente a linha abaixo:
+# COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+RUN mkdir -p ./public && chown nextjs:nodejs ./public
+
+# Copiar standalone e static (necessários para o Next.js)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Garantir permissões corretas antes de mudar para nextjs
+RUN chown -R nextjs:nodejs /app
 
 # Variáveis de ambiente em runtime (pode ser sobrescrito pelo docker-compose)
 # Essas serão sobrescritas pelas variáveis de ambiente do Easypanel/container
@@ -66,8 +74,8 @@ USER nextjs
 # Expor porta
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 # Comando para iniciar
 CMD ["node", "server.js"]
