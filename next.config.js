@@ -13,6 +13,11 @@ const nextConfig = {
     // TODO: Corrigir todos os erros de tipo e remover esta linha
     ignoreBuildErrors: true,
   },
+  // Desabilitar geração estática de páginas que precisam de Supabase
+  // Isso evita erros durante build quando variáveis de ambiente não estão disponíveis
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   images: {
     remotePatterns: [
       {

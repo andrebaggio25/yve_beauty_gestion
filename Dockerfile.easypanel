@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Copiar arquivos de dependências
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production=false
+RUN npm ci
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -22,21 +22,18 @@ COPY . .
 # Variáveis de ambiente para build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV SKIP_ENV_VALIDATION=1
 
-# Variáveis de build (podem ser passadas como ARG)
+# Variáveis de build (DEVEM SER CONFIGURADAS NO EASYPANEL)
+# Settings → Environment Variables:
+# - NEXT_PUBLIC_SUPABASE_URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# Build da aplicação com output detalhado
-RUN npm run build 2>&1 | tee /tmp/build.log || (echo "=== BUILD FAILED ===" && cat /tmp/build.log && exit 1)
-
-# Verificar se o build foi bem-sucedido e se standalone foi gerado
-RUN test -d .next || (echo "ERROR: .next directory not found!" && ls -la && exit 1)
-RUN test -d .next/standalone || (echo "ERROR: .next/standalone directory not found! Listing .next contents:" && ls -la .next/ && exit 1)
-RUN test -d .next/static || (echo "ERROR: .next/static directory not found!" && exit 1)
+# Build da aplicação
+RUN npm run build
 
 # Stage 3: Runner (produção)
 FROM node:20-alpine AS runner
@@ -52,7 +49,7 @@ RUN apk add --no-cache libc6-compat
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copiar arquivos necessários do build standalone
+# Copiar arquivos necessários
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -65,4 +62,3 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
-
