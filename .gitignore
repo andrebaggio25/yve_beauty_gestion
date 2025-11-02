@@ -25,8 +25,9 @@ yarn-error.log*
 
 # Local env files
 .env
-# .env.local - Permitido para deploy na VPS
-# .env.*.local
+.env.local
+.env.production
+.env.*.local
 
 # Vercel
 .vercel
