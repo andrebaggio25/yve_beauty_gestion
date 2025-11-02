@@ -30,11 +30,12 @@ ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# Build da aplicação
-RUN npm run build
+# Build da aplicação com output detalhado
+RUN npm run build 2>&1 | tee /tmp/build.log || (echo "=== BUILD FAILED ===" && cat /tmp/build.log && exit 1)
 
 # Verificar se o build foi bem-sucedido e se standalone foi gerado
-RUN test -d .next/standalone || (echo "ERROR: .next/standalone directory not found! Build may have failed." && ls -la .next/ && exit 1)
+RUN test -d .next || (echo "ERROR: .next directory not found!" && ls -la && exit 1)
+RUN test -d .next/standalone || (echo "ERROR: .next/standalone directory not found! Listing .next contents:" && ls -la .next/ && exit 1)
 RUN test -d .next/static || (echo "ERROR: .next/static directory not found!" && exit 1)
 
 # Stage 3: Runner (produção)
