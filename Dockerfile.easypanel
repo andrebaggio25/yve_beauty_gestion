@@ -19,6 +19,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Garantir que public existe (mesmo que vazio)
+RUN mkdir -p public
+
 # Variáveis de ambiente para build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -49,7 +52,8 @@ RUN apk add --no-cache libc6-compat
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copiar arquivos necessários
+# Copiar arquivos do build
+# Public foi criado no builder, então sempre existirá
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
