@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useCompanyLogo } from '@/hooks/useCompanyLogo'
 
 /**
@@ -9,42 +9,87 @@ import { useCompanyLogo } from '@/hooks/useCompanyLogo'
  */
 export function FaviconUpdater() {
   const { logoUrl } = useCompanyLogo()
+  const createdElementsRef = useRef<HTMLLinkElement[]>([])
 
   useEffect(() => {
-    if (!logoUrl || typeof document === 'undefined') return
+    if (typeof document === 'undefined' || !document.head) return
 
-    // Remover favicon existente
-    const existingFavicons = document.querySelectorAll("link[rel*='icon'], link[rel*='apple-touch-icon']")
-    existingFavicons.forEach(favicon => favicon.remove())
+    // Limpar elementos criados anteriormente de forma segura
+    createdElementsRef.current.forEach(element => {
+      try {
+        if (element && element.isConnected) {
+          element.remove()
+        }
+      } catch (error) {
+        // Ignorar erros ao remover (elemento já foi removido)
+      }
+    })
+    createdElementsRef.current = []
 
-    // Criar novo favicon
-    const link = document.createElement('link')
-    link.rel = 'icon'
-    link.type = 'image/png'
-    link.href = logoUrl
-    link.sizes = '32x32'
-    document.head.appendChild(link)
+    if (!logoUrl) return
 
-    // Criar favicon para diferentes tamanhos
-    const link16 = document.createElement('link')
-    link16.rel = 'icon'
-    link16.type = 'image/png'
-    link16.href = logoUrl
-    link16.sizes = '16x16'
-    document.head.appendChild(link16)
+    try {
+      // Criar novos favicons primeiro
+      const link = document.createElement('link')
+      link.setAttribute('data-dynamic', 'true')
+      link.rel = 'icon'
+      link.type = 'image/png'
+      link.href = logoUrl
+      link.sizes = '32x32'
+      document.head.appendChild(link)
+      createdElementsRef.current.push(link)
 
-    // Apple touch icon para iOS
-    const appleLink = document.createElement('link')
-    appleLink.rel = 'apple-touch-icon'
-    appleLink.href = logoUrl
-    appleLink.sizes = '180x180'
-    document.head.appendChild(appleLink)
+      // Criar favicon para diferentes tamanhos
+      const link16 = document.createElement('link')
+      link16.setAttribute('data-dynamic', 'true')
+      link16.rel = 'icon'
+      link16.type = 'image/png'
+      link16.href = logoUrl
+      link16.sizes = '16x16'
+      document.head.appendChild(link16)
+      createdElementsRef.current.push(link16)
+
+      // Apple touch icon para iOS
+      const appleLink = document.createElement('link')
+      appleLink.setAttribute('data-dynamic', 'true')
+      appleLink.rel = 'apple-touch-icon'
+      appleLink.href = logoUrl
+      appleLink.sizes = '180x180'
+      document.head.appendChild(appleLink)
+      createdElementsRef.current.push(appleLink)
+
+      // Depois remover apenas favicons antigos (não dinâmicos)
+      // Usar setTimeout para garantir que os novos foram adicionados primeiro
+      setTimeout(() => {
+        const allFavicons = document.querySelectorAll("link[rel*='icon'], link[rel*='apple-touch-icon']")
+        allFavicons.forEach(favicon => {
+          try {
+            // Não remover os elementos dinâmicos que acabamos de criar
+            const isDynamic = favicon.getAttribute('data-dynamic') === 'true'
+            if (!isDynamic && favicon && favicon.isConnected) {
+              favicon.remove()
+            }
+          } catch (error) {
+            // Ignorar erros
+          }
+        })
+      }, 0)
+    } catch (error) {
+      console.warn('Error updating favicon:', error)
+    }
 
     // Cleanup quando componente desmontar ou logo mudar
     return () => {
-      link.remove()
-      link16.remove()
-      appleLink.remove()
+      createdElementsRef.current.forEach(element => {
+        try {
+          if (element && element.isConnected) {
+            element.remove()
+          }
+        } catch (error) {
+          // Ignorar erros ao remover
+        }
+      })
+      createdElementsRef.current = []
     }
   }, [logoUrl])
 

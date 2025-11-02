@@ -95,9 +95,9 @@ export function TaxIdInput({
 
   return (
     <div className="space-y-2">
-      <label className="block text-slate-300 text-sm font-medium">
+      <label className="block text-gray-600 text-sm font-medium">
         <div className="flex items-center gap-2 mb-2">
-          <FileText size={16} />
+          <FileText size={16} className="text-gray-500" />
           <span>Identificação Fiscal</span>
         </div>
       </label>
@@ -110,7 +110,7 @@ export function TaxIdInput({
             setError(null)
           }}
           disabled={disabled || availableTypes.length === 1}
-          className={`px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             disabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
@@ -127,15 +127,15 @@ export function TaxIdInput({
           onChange={handleChange}
           placeholder={`Ex: ${countryCode === 'US' ? '12-3456789' : 'XX.XXX.XXX/XXXX-XX'}`}
           disabled={disabled}
-          className={`flex-1 px-4 py-2 bg-slate-800 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+          className={`flex-1 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
             error
               ? 'border-red-600 focus:ring-red-500'
-              : 'border-slate-700 focus:ring-blue-500'
+              : 'focus:ring-blue-500'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
       </div>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
     </div>
   )
 }

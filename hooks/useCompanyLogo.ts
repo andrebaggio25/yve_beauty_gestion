@@ -23,13 +23,6 @@ export function useCompanyLogo() {
     fetchCompanyLogo()
   }, [])
 
-  // Atualizar favicon quando a logo é carregada
-  useEffect(() => {
-    if (logoUrl && typeof document !== 'undefined') {
-      updateFavicon(logoUrl)
-    }
-  }, [logoUrl])
-
   const fetchCompanyLogo = async () => {
     try {
       const { data, error } = await supabase
@@ -52,34 +45,6 @@ export function useCompanyLogo() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const updateFavicon = (url: string) => {
-    if (typeof document === 'undefined') return
-
-    // Remove favicon existente
-    const existingFavicon = document.querySelector("link[rel*='icon']")
-    if (existingFavicon) {
-      existingFavicon.remove()
-    }
-
-    // Criar novo link para favicon
-    const link = document.createElement('link')
-    link.rel = 'icon'
-    link.type = 'image/png'
-    link.href = url
-    document.head.appendChild(link)
-
-    // Também atualizar apple-touch-icon para dispositivos iOS
-    const appleIcon = document.querySelector("link[rel*='apple-touch-icon']")
-    if (appleIcon) {
-      appleIcon.remove()
-    }
-    
-    const appleLink = document.createElement('link')
-    appleLink.rel = 'apple-touch-icon'
-    appleLink.href = url
-    document.head.appendChild(appleLink)
   }
 
   return {

@@ -2,20 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, MapPin, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, MapPin, Edit2, Trash2, CheckCircle, XCircle, X } from 'lucide-react'
+import { PhoneInputWithCountry } from '@/components/PhoneInputWithCountry'
+import { TaxIdInput } from '@/components/TaxIdInput'
+import { COUNTRIES } from '@/lib/utils/countries'
 
 interface Branch {
   id: string
   name: string
-  code: string
-  address_line1: string
+  code: string | null
+  address_line1: string | null
   address_line2: string | null
-  city: string
-  state: string
-  postal_code: string
-  country: string
+  city: string | null
+  state: string | null
+  postal_code: string | null
+  country_code: string | null
   phone: string | null
+  phone_country: string | null
   email: string | null
+  tax_id: string | null
+  tax_id_type: string | null
   is_active: boolean
   is_headquarters: boolean
   created_at: string
@@ -36,9 +42,12 @@ export default function BranchesPage() {
     city: '',
     state: '',
     postal_code: '',
-    country: 'Brasil',
-    phone: '',
+    country_code: 'BR',
+    phone: null as string | null,
+    phone_country: 'BR',
     email: '',
+    tax_id: null as string | null,
+    tax_id_type: 'CNPJ' as 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER',
     is_active: true,
     is_headquarters: false,
   })
@@ -68,59 +77,161 @@ export default function BranchesPage() {
     e.preventDefault()
     
     try {
+      // Preparar dados para salvar
+      const dataToSave = {
+        name: formData.name,
+        code: formData.code || null,
+        address_line1: formData.address_line1 || null,
+        address_line2: formData.address_line2 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        postal_code: formData.postal_code || null,
+        country_code: formData.country_code,
+        phone: formData.phone,
+        phone_country: formData.phone_country,
+        email: formData.email || null,
+        tax_id: formData.tax_id,
+        tax_id_type: formData.tax_id_type,
+        is_active: formData.is_active,
+        is_headquarters: formData.is_headquarters,
+        functional_currency: 'BRL', // Default, pode ser configurável depois
+      }
+
       if (editingBranch) {
         const { error } = await supabase
           .from('branch')
-          .update(formData)
+          .update(dataToSave)
           .eq('id', editingBranch.id)
 
         if (error) throw error
+
+        // Se marcou como matriz, sincronizar dados com a empresa
+        if (formData.is_headquarters) {
+          await syncBranchToCompany(dataToSave)
+        }
       } else {
         const { error } = await supabase
           .from('branch')
-          .insert([formData])
+          .insert([dataToSave])
 
         if (error) throw error
+
+        // Se marcou como matriz, sincronizar dados com a empresa
+        if (formData.is_headquarters) {
+          await syncBranchToCompany(dataToSave)
+        }
       }
 
       setShowModal(false)
       setEditingBranch(null)
-      setFormData({
-        name: '',
-        code: '',
-        address_line1: '',
-        address_line2: '',
-        city: '',
-        state: '',
-        postal_code: '',
-        country: 'Brasil',
-        phone: '',
-        email: '',
-        is_active: true,
-        is_headquarters: false,
-      })
+      resetForm()
       fetchBranches()
     } catch (error) {
       console.error('Error saving branch:', error)
-      alert('Erro ao salvar filial')
+      alert('Erro ao salvar filial: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
     }
+  }
+
+  // Sincronizar dados da matriz com a empresa
+  const syncBranchToCompany = async (branchData: any) => {
+    try {
+      // Buscar company_id do usuário atual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.warn('Usuário não autenticado')
+        return
+      }
+
+      const { data: userProfile } = await supabase
+        .from('user_profile')
+        .select('company_id')
+        .eq('auth_user_id', user.id)
+        .single()
+
+      if (!userProfile?.company_id) {
+        console.warn('Não foi possível encontrar company_id para sincronizar')
+        return
+      }
+
+      // Preparar dados para atualizar na empresa
+      const companyUpdate: any = {
+        country_code: branchData.country_code,
+        phone: branchData.phone,
+        phone_country: branchData.phone_country,
+        email: branchData.email,
+        tax_id: branchData.tax_id,
+        tax_id_type: branchData.tax_id_type,
+        address_line1: branchData.address_line1,
+        address_line2: branchData.address_line2,
+        city: branchData.city,
+        state: branchData.state,
+        postal_code: branchData.postal_code,
+      }
+
+      // Remover campos nulos
+      Object.keys(companyUpdate).forEach(key => {
+        if (companyUpdate[key] === null || companyUpdate[key] === undefined) {
+          delete companyUpdate[key]
+        }
+      })
+
+      // Atualizar empresa apenas se houver dados para atualizar
+      if (Object.keys(companyUpdate).length > 0) {
+        const { error } = await supabase
+          .from('company')
+          .update(companyUpdate)
+          .eq('id', userProfile.company_id)
+
+        if (error) {
+          console.warn('Erro ao sincronizar dados da matriz com a empresa:', error)
+          // Não falha o salvamento da filial se a sincronização falhar
+        }
+      }
+    } catch (error) {
+      console.warn('Erro ao sincronizar dados da matriz com a empresa:', error)
+      // Não falha o salvamento da filial se a sincronização falhar
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      code: '',
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      state: '',
+      postal_code: '',
+      country_code: 'BR',
+      phone: null,
+      phone_country: 'BR',
+      email: '',
+      tax_id: null,
+      tax_id_type: 'CNPJ',
+      is_active: true,
+      is_headquarters: false,
+    })
   }
 
   const handleEdit = (branch: Branch) => {
     setEditingBranch(branch)
+    const countryCode = branch.country_code || 'BR'
     setFormData({
-      name: branch.name,
-      code: branch.code,
-      address_line1: branch.address_line1,
+      name: branch.name || '',
+      code: branch.code || '',
+      address_line1: branch.address_line1 || '',
       address_line2: branch.address_line2 || '',
-      city: branch.city,
-      state: branch.state,
-      postal_code: branch.postal_code,
-      country: branch.country,
-      phone: branch.phone || '',
+      city: branch.city || '',
+      state: branch.state || '',
+      postal_code: branch.postal_code || '',
+      country_code: countryCode,
+      phone: branch.phone,
+      phone_country: branch.phone_country || countryCode,
       email: branch.email || '',
-      is_active: branch.is_active,
-      is_headquarters: branch.is_headquarters,
+      tax_id: branch.tax_id,
+      tax_id_type: (branch.tax_id_type as any) || 'CNPJ',
+      is_active: branch.is_active ?? true,
+      is_headquarters: branch.is_headquarters ?? false,
     })
     setShowModal(true)
   }
@@ -156,6 +267,12 @@ export default function BranchesPage() {
     }
   }
 
+  const getCountryName = (code: string | null) => {
+    if (!code) return 'Não informado'
+    const country = COUNTRIES.find(c => c.code === code)
+    return country?.name || code
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -166,20 +283,7 @@ export default function BranchesPage() {
         <button
           onClick={() => {
             setEditingBranch(null)
-            setFormData({
-              name: '',
-              code: '',
-              address_line1: '',
-              address_line2: '',
-              city: '',
-              state: '',
-              postal_code: '',
-              country: 'Brasil',
-              phone: '',
-              email: '',
-              is_active: true,
-              is_headquarters: false,
-            })
+            resetForm()
             setShowModal(true)
           }}
           className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors"
@@ -220,7 +324,10 @@ export default function BranchesPage() {
             <MapPin size={48} className="mx-auto text-slate-600 mb-4" />
             <p className="text-gray-500">Nenhuma filial cadastrada</p>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                resetForm()
+                setShowModal(true)
+              }}
               className="mt-4 text-blue-400 hover:text-blue-300"
             >
               Criar primeira filial
@@ -235,7 +342,9 @@ export default function BranchesPage() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="text-gray-900 font-semibold text-lg">{branch.name}</h3>
-                  <p className="text-gray-500 text-sm font-mono">{branch.code}</p>
+                  {branch.code && (
+                    <p className="text-gray-500 text-sm font-mono">{branch.code}</p>
+                  )}
                 </div>
                 {branch.is_headquarters && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
@@ -245,20 +354,31 @@ export default function BranchesPage() {
               </div>
 
               <div className="space-y-2 text-sm mb-4">
-                <div className="flex items-start gap-2">
-                  <MapPin size={14} className="text-gray-500 mt-1 flex-shrink-0" />
-                  <div className="text-gray-600">
-                    <p>{branch.address_line1}</p>
-                    {branch.address_line2 && <p>{branch.address_line2}</p>}
-                    <p>{branch.city}, {branch.state} - {branch.postal_code}</p>
-                    <p>{branch.country}</p>
+                {(branch.address_line1 || branch.city) && (
+                  <div className="flex items-start gap-2">
+                    <MapPin size={14} className="text-gray-500 mt-1 flex-shrink-0" />
+                    <div className="text-gray-600">
+                      {branch.address_line1 && <p>{branch.address_line1}</p>}
+                      {branch.address_line2 && <p>{branch.address_line2}</p>}
+                      {branch.city && (
+                        <p>
+                          {branch.city}
+                          {branch.state && `, ${branch.state}`}
+                          {branch.postal_code && ` - ${branch.postal_code}`}
+                        </p>
+                      )}
+                      {branch.country_code && <p>{getCountryName(branch.country_code)}</p>}
+                    </div>
                   </div>
-                </div>
+                )}
                 {branch.phone && (
                   <p className="text-gray-500 ml-6">📞 {branch.phone}</p>
                 )}
                 {branch.email && (
                   <p className="text-gray-500 ml-6">✉️ {branch.email}</p>
+                )}
+                {branch.tax_id && (
+                  <p className="text-gray-500 ml-6">🆔 {branch.tax_id}</p>
                 )}
               </div>
 
@@ -299,183 +419,244 @@ export default function BranchesPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8">
-            <h2 className="text-2xl font-semibold tracking-tight text-gray-900 mb-6">
-              {editingBranch ? 'Editar Filial' : 'Nova Filial'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
+                {editingBranch ? 'Editar Filial' : 'Nova Filial'}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                type="button"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="overflow-y-auto p-6 flex-1">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      Nome *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Filial São Paulo"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      Código *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="SP01"
+                      maxLength={10}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* País e Identificação Fiscal */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      País *
+                    </label>
+                    <select
+                      value={formData.country_code}
+                      onChange={(e) => {
+                        const newCountry = e.target.value
+                        setFormData({ ...formData, country_code: newCountry })
+                        // Ajustar tax_id_type baseado no país
+                        const types: Record<string, 'EIN' | 'VAT' | 'NIF' | 'CNPJ' | 'OTHER'> = {
+                          'US': 'EIN',
+                          'BR': 'CNPJ',
+                          'ES': 'VAT',
+                          'IE': 'VAT',
+                        }
+                        const defaultType = types[newCountry] || 'OTHER'
+                        setFormData(prev => ({ ...prev, country_code: newCountry, tax_id_type: defaultType }))
+                      }}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      {COUNTRIES.map(country => (
+                        <option key={country.code} value={country.code}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <TaxIdInput
+                      value={formData.tax_id}
+                      onChange={(value) => setFormData({ ...formData, tax_id: value })}
+                      taxIdType={formData.tax_id_type}
+                      onTaxIdTypeChange={(type) => setFormData({ ...formData, tax_id_type: type })}
+                      countryCode={formData.country_code}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-gray-600 text-sm font-medium mb-2">
-                    Nome *
+                    Endereço *
                   </label>
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.address_line1}
+                    onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Filial São Paulo"
+                    placeholder="Rua, número"
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-gray-600 text-sm font-medium mb-2">
-                    Código *
+                    Complemento
                   </label>
                   <input
                     type="text"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                    value={formData.address_line2}
+                    onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="SP01"
-                    maxLength={10}
-                    required
+                    placeholder="Apto, sala..."
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">
-                  Endereço *
-                </label>
-                <input
-                  type="text"
-                  value={formData.address_line1}
-                  onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Rua, número"
-                  required
-                />
-              </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      Cidade *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="São Paulo"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">
-                  Complemento
-                </label>
-                <input
-                  type="text"
-                  value={formData.address_line2}
-                  onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Apto, sala..."
-                />
-              </div>
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      Estado *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="SP"
+                      required
+                    />
+                  </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-gray-600 text-sm font-medium mb-2">
-                    Cidade *
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      CEP *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.postal_code}
+                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="01234-567"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <PhoneInputWithCountry
+                      value={formData.phone}
+                      onChange={(value) => setFormData({ ...formData, phone: value })}
+                      phoneCountryCode={formData.phone_country}
+                      onPhoneCountryChange={(countryCode) => setFormData({ ...formData, phone_country: countryCode })}
+                      label="Telefone"
+                      placeholder="(11) 98765-4321"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-600 text-sm font-medium mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="filial@empresa.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                      className="rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm">Filial ativa</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="São Paulo"
-                    required
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-gray-600 text-sm font-medium mb-2">
-                    Estado *
+                  <label className="flex items-center gap-2 text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_headquarters}
+                      onChange={(e) => setFormData({ ...formData, is_headquarters: e.target.checked })}
+                      className="rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm">É matriz</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="SP"
-                    required
-                  />
                 </div>
 
-                <div>
-                  <label className="block text-gray-600 text-sm font-medium mb-2">
-                    CEP *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.postal_code}
-                    onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="01234-567"
-                    required
-                  />
+                <div className="flex justify-end gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false)
+                      setEditingBranch(null)
+                    }}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
+                  >
+                    {editingBranch ? 'Atualizar' : 'Criar'}
+                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-600 text-sm font-medium mb-2">
-                    Telefone
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="(11) 98765-4321"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-600 text-sm font-medium mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="filial@empresa.com"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="rounded border-slate-600 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">Filial ativa</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_headquarters}
-                    onChange={(e) => setFormData({ ...formData, is_headquarters: e.target.checked })}
-                    className="rounded border-slate-600 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm">É matriz</span>
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false)
-                    setEditingBranch(null)
-                  }}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-gray-900 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
-                >
-                  {editingBranch ? 'Atualizar' : 'Criar'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
