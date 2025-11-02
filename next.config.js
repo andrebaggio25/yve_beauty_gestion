@@ -4,19 +4,13 @@ const nextConfig = {
   swcMinify: true,
   // Habilitar output standalone para Docker
   output: 'standalone',
-  // Ignorar erros de ESLint durante builds (warnings ainda aparecem)
+  // Permitir warnings do ESLint durante build (erros ainda bloqueiam)
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
+  // TypeScript: verificar tipos mas não bloquear build se houver erros menores
   typescript: {
-    // Ignorar erros de TypeScript durante builds temporariamente
-    // TODO: Corrigir todos os erros de tipo e remover esta linha
-    ignoreBuildErrors: true,
-  },
-  // Desabilitar geração estática de páginas que precisam de Supabase
-  // Isso evita erros durante build quando variáveis de ambiente não estão disponíveis
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
+    ignoreBuildErrors: false,
   },
   images: {
     remotePatterns: [

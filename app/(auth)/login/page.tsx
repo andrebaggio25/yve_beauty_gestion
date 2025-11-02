@@ -19,26 +19,15 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (signInError) {
-        // Mensagens de erro mais amigáveis
-        if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed')) {
-          setError('Email ou senha incorretos. Verifique suas credenciais.')
-        } else {
-          setError(signInError.message || 'Erro ao fazer login')
-        }
-        setLoading(false)
-        return
-      }
+      if (signInError) throw signInError
 
-      if (data?.user) {
-        router.replace('/dashboard')
-        router.refresh()
-      }
+      router.replace('/dashboard')
+      router.refresh()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login'
       setError(message)

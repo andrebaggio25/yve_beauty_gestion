@@ -86,8 +86,7 @@ export default function ProvisionsPage() {
         entity: 'provision',
         entity_id: id,
         action: 'update',
-        old_data: { status: 'booked' },
-        new_data: { status: 'reversed' }
+        changes: { status: 'reversed' }
       })
 
       fetchProvisions()

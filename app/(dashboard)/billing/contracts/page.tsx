@@ -92,8 +92,7 @@ export default function ContractsPage() {
         entity: 'contract',
         entity_id: id,
         action: 'update',
-        old_data: { is_active: currentStatus },
-        new_data: { is_active: !currentStatus }
+        changes: { is_active: !currentStatus }
       })
 
       fetchContracts()

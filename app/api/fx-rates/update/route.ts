@@ -14,7 +14,7 @@ import { getExchangeRates } from '@/modules/integrations/currency-api'
  * 
  * Horário recomendado: 10h da manhã (BR) = 13:00 UTC
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
