@@ -8,11 +8,12 @@ import { useCompanyLogo } from '@/hooks/useCompanyLogo'
  * Deve ser usado no layout principal para garantir que o favicon seja atualizado
  */
 export function FaviconUpdater() {
-  const { logoUrl } = useCompanyLogo()
+  const { logoUrl, loading } = useCompanyLogo()
   const createdElementsRef = useRef<HTMLLinkElement[]>([])
 
   useEffect(() => {
     if (typeof document === 'undefined' || !document.head) return
+    if (loading) return // Aguardar carregar antes de atualizar favicon
 
     // Limpar elementos criados anteriormente de forma segura
     createdElementsRef.current.forEach(element => {
@@ -91,7 +92,7 @@ export function FaviconUpdater() {
       })
       createdElementsRef.current = []
     }
-  }, [logoUrl])
+  }, [logoUrl, loading])
 
   // Este componente não renderiza nada
   return null

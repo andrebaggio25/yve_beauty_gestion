@@ -5,13 +5,14 @@ export const createClient = () => {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !key) {
-    // Durante build, retornar cliente dummy para evitar erros
-    // O cliente real será criado em runtime quando as variáveis estiverem disponíveis
+    // Durante build, retornar erro apenas no servidor
     if (typeof window === 'undefined') {
       throw new Error(
         'Supabase URL and Key are required. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.'
       )
     }
+    // No cliente, usar valores vazios e deixar que o erro apareça em runtime
+    console.warn('Supabase environment variables not configured')
   }
 
   // Use minimal configuration - let Supabase handle storage internally

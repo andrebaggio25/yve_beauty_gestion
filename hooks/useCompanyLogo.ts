@@ -28,20 +28,26 @@ export function useCompanyLogo() {
       const { data, error } = await supabase
         .from('company')
         .select('logo_url, legal_name, trade_name, name')
-        .single()
+        .maybeSingle() // Usa maybeSingle ao invés de single para não falhar se não houver dados
 
       if (error) {
+        // Ignorar erro PGRST116 (no rows) e outros erros de permissão
+        if (error.code === 'PGRST116' || error.code === '42501') {
+          console.log('Company data not available yet')
+          return
+        }
         console.error('Error fetching company logo:', error)
         return
       }
 
       if (data) {
-        setLogoUrl(data.logo_url)
+        setLogoUrl(data.logo_url || null)
         const name = data.trade_name || data.legal_name || data.name || 'Yve Gestión'
         setCompanyName(name)
       }
     } catch (error) {
-      console.error('Error fetching company logo:', error)
+      // Silenciar erros de company logo para não quebrar o app
+      console.log('Company logo not available:', error)
     } finally {
       setLoading(false)
     }
