@@ -36,11 +36,19 @@ export default function TaxPage() {
   const [filterCountry, setFilterCountry] = useState<string>('all')
   const supabase = createClient()
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    code: string
+    rate: number
+    type: 'percentage' | 'fixed'
+    country: string
+    is_active: boolean
+    description: string
+  }>({
     name: '',
     code: '',
     rate: 0,
-    type: 'percentage' as const,
+    type: 'percentage',
     country: 'BR',
     is_active: true,
     description: '',

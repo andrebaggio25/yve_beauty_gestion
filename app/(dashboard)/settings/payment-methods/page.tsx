@@ -32,9 +32,14 @@ export default function PaymentMethodsPage() {
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null)
   const supabase = createClient()
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    type: 'bank_transfer' | 'credit_card' | 'debit_card' | 'cash' | 'pix' | 'boleto' | 'check' | 'other'
+    is_active: boolean
+    requires_approval: boolean
+  }>({
     name: '',
-    type: 'bank_transfer' as const,
+    type: 'bank_transfer',
     is_active: true,
     requires_approval: false,
   })

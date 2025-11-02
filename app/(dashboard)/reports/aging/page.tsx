@@ -36,6 +36,7 @@ export default function AgingPage() {
     try {
       setLoading(true)
       const result = await generateAgingReport({
+        startDate: '',
         endDate: new Date().toISOString().split('T')[0],
         showUSD,
       })

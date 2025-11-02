@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Search } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 
 interface AuditEntry {
   id: string
@@ -10,8 +10,8 @@ interface AuditEntry {
   entity: string
   entity_id: string | null
   action: string
-  old_data: Record<string, any> | null
-  new_data: Record<string, any> | null
+  old_data: Record<string, unknown> | null
+  new_data: Record<string, unknown> | null
   at: string
 }
 
@@ -24,12 +24,13 @@ export default function AuditPage() {
 
   useEffect(() => {
     fetchLogs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      let query = supabase
+      const query = supabase
         .from('audit_log')
         .select('*')
         .order('at', { ascending: false })

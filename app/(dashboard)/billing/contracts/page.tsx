@@ -35,6 +35,7 @@ export default function ContractsPage() {
 
   useEffect(() => {
     fetchContracts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, itemsPerPage])
 
   const fetchContracts = async () => {
@@ -92,7 +93,8 @@ export default function ContractsPage() {
         entity: 'contract',
         entity_id: id,
         action: 'update',
-        changes: { is_active: !currentStatus }
+        old_data: { is_active: currentStatus },
+        new_data: { is_active: !currentStatus }
       })
 
       fetchContracts()
