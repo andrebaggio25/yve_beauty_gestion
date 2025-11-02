@@ -19,18 +19,23 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Variáveis de ambiente
+# Variáveis de ambiente para build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=1
 
-# Build da aplicação (ignora erros de TypeScript se necessário)
-RUN npm run build 2>&1 | tee build.log || \
-    (echo "=== BUILD ERROR LOG ===" && cat build.log && echo "=== Checking for TypeScript errors ===" && \
-     npm run type-check 2>&1 || true && exit 1)
+# Variáveis de build (podem ser passadas como ARG)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-# Verificar se o build foi bem-sucedido
-RUN test -d .next || (echo "Build directory not found!" && exit 1)
+# Build da aplicação
+RUN npm run build
+
+# Verificar se o build foi bem-sucedido e se standalone foi gerado
+RUN test -d .next/standalone || (echo "ERROR: .next/standalone directory not found! Build may have failed." && ls -la .next/ && exit 1)
+RUN test -d .next/static || (echo "ERROR: .next/static directory not found!" && exit 1)
 
 # Stage 3: Runner (produção)
 FROM node:20-alpine AS runner

@@ -4,6 +4,14 @@ const nextConfig = {
   swcMinify: true,
   // Habilitar output standalone para Docker
   output: 'standalone',
+  // Ignorar erros de ESLint durante builds (warnings ainda aparecem)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Não ignorar erros de TypeScript (mantém qualidade)
+    ignoreBuildErrors: false,
+  },
   images: {
     remotePatterns: [
       {

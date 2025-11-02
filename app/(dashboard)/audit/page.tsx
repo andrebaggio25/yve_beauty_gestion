@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Search } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 
 interface AuditEntry {
   id: string
@@ -29,7 +29,7 @@ export default function AuditPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true)
-      let query = supabase
+      const query = supabase
         .from('audit_log')
         .select('*')
         .order('at', { ascending: false })
